@@ -1,7 +1,10 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
+import { Services } from './pages/Services';
+import { Bookings } from './pages/Bookings';
 import { useAuthStore } from './store/authStore';
+import { Layout } from './components/Layout';
 
 function App() {
   const { isAuthenticated } = useAuthStore();
@@ -14,10 +17,14 @@ function App() {
           element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />}
         />
         <Route
-          path="/dashboard"
-          element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />}
-        />
-        <Route path="/" element={<Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />} />
+          path="/"
+          element={isAuthenticated ? <Layout /> : <Navigate to="/login" replace />}
+        >
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="services" element={<Services />} />
+          <Route path="bookings" element={<Bookings />} />
+          <Route index element={<Navigate to="/dashboard" replace />} />
+        </Route>
       </Routes>
     </Router>
   );
