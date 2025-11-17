@@ -19,6 +19,8 @@ data/
 # WhatsApp Sessions
 .whatsapp/
 whatsapp-sessions/
+backend/data/whatsapp-sessions/
+**/whatsapp-sessions/
 
 # Logs
 *.log

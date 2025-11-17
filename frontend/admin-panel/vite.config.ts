@@ -10,13 +10,28 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3001,
+    port: parseInt(process.env.VITE_PORT || '3001'),
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: process.env.VITE_API_URL || 'http://localhost:3000',
         changeOrigin: true,
+        secure: false,
       },
     },
   },
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          query: ['@tanstack/react-query'],
+        },
+      },
+    },
+  },
+  // Vite expone automáticamente variables que empiezan con VITE_
+  // No necesitamos definir manualmente
 });
 

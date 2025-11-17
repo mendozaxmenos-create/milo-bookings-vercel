@@ -73,6 +73,21 @@ export function Layout() {
                 📅 Reservas
               </Link>
             </li>
+            <li style={{ marginBottom: '0.5rem' }}>
+              <Link
+                to="/availability"
+                style={{
+                  display: 'block',
+                  padding: '0.75rem 1rem',
+                  borderRadius: '4px',
+                  textDecoration: 'none',
+                  color: isActive('/availability') ? '#fff' : '#adb5bd',
+                  backgroundColor: isActive('/availability') ? '#495057' : 'transparent',
+                }}
+              >
+                ⏰ Horarios
+              </Link>
+            </li>
           </ul>
         </nav>
 

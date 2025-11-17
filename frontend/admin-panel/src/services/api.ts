@@ -1,7 +1,24 @@
 import axios from 'axios';
 
+// Obtener URL del backend desde variables de entorno o usar relativa
+const getApiBaseURL = () => {
+  // En producción, usar variable de entorno
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // En desarrollo, usar proxy relativo
+  if (import.meta.env.DEV) {
+    return '/api';
+  }
+  
+  // Fallback: intentar detectar automáticamente
+  // Si estamos en producción y no hay variable, usar el mismo dominio
+  return '/api';
+};
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: getApiBaseURL(),
   headers: {
     'Content-Type': 'application/json',
   },

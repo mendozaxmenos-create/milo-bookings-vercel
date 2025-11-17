@@ -3,6 +3,7 @@ import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Services } from './pages/Services';
 import { Bookings } from './pages/Bookings';
+import { Availability } from './pages/Availability';
 import { useAuthStore } from './store/authStore';
 import { Layout } from './components/Layout';
 
@@ -23,6 +24,7 @@ function App() {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="services" element={<Services />} />
           <Route path="bookings" element={<Bookings />} />
+          <Route path="availability" element={<Availability />} />
           <Route index element={<Navigate to="/dashboard" replace />} />
         </Route>
       </Routes>
