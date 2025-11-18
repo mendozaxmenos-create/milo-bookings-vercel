@@ -18,10 +18,10 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Configurar trust proxy para Render (necesario para rate limiting)
+// Configurar trust proxy para Render
 app.set('trust proxy', 1);
 
-// Middleware
+// Middleware básico
 app.use(helmet());
 app.use(cors({
   origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
@@ -30,12 +30,18 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Health check (sin rate limiting)
+// Logging middleware (temprano para ver todas las peticiones)
+app.use((req, res, next) => {
+  console.log(`[API] ${req.method} ${req.path} - ${new Date().toISOString()}`);
+  next();
+});
+
+// Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Root route - API information (sin rate limiting)
+// Root route
 app.get('/', (req, res) => {
   res.json({
     name: 'Milo Bookings API',
@@ -54,17 +60,14 @@ app.get('/', (req, res) => {
       bot: '/api/bot',
       admin: '/api/admin',
     },
-    documentation: 'See README.md for API documentation',
   });
 });
 
-// TEMPORAL: Endpoint para ejecutar seeds manualmente (sin autenticación ni rate limiting)
-// TODO: Eliminar este endpoint después de ejecutar los seeds
+// TEMPORAL: Endpoint para ejecutar seeds (SIN rate limiting, SIN autenticación)
 app.post('/api/run-seeds', async (req, res) => {
   try {
-    console.log('[SeedEndpoint] ⚡ Ejecutando seeds manualmente...');
+    console.log('[SeedEndpoint] ⚡ Iniciando ejecución de seeds...');
     
-    // Importar dinámicamente para evitar problemas de circular dependencies
     const knex = (await import('knex')).default;
     const config = (await import('../knexfile.js')).default;
     const { seed: seedDemo } = await import('../database/seeds/001_demo_data.js');
@@ -72,12 +75,13 @@ app.post('/api/run-seeds', async (req, res) => {
     
     const environment = process.env.NODE_ENV || 'production';
     console.log('[SeedEndpoint] Environment:', environment);
+    
     const db = knex(config[environment]);
+    console.log('[SeedEndpoint] Conexión a DB establecida');
     
     // Verificar si hay negocios
     const businessesCount = await db('businesses').count('* as count').first();
     const count = parseInt(businessesCount?.count || 0, 10);
-    
     console.log(`[SeedEndpoint] Negocios encontrados: ${count}`);
     
     if (count > 0) {
@@ -91,19 +95,18 @@ app.post('/api/run-seeds', async (req, res) => {
     
     console.log('[SeedEndpoint] Ejecutando seed de datos demo...');
     await seedDemo(db);
-    console.log('[SeedEndpoint] Seed de datos demo completado');
+    console.log('[SeedEndpoint] ✅ Seed de datos demo completado');
     
     console.log('[SeedEndpoint] Ejecutando seed de usuarios del sistema...');
     await seedSystemUsers(db);
-    console.log('[SeedEndpoint] Seed de usuarios del sistema completado');
+    console.log('[SeedEndpoint] ✅ Seed de usuarios del sistema completado');
     
     await db.destroy();
-    
-    console.log('[SeedEndpoint] ✅ Seeds ejecutados correctamente');
+    console.log('[SeedEndpoint] ✅ Todos los seeds ejecutados correctamente');
     
     res.json({ 
       message: 'Seeds ejecutados correctamente',
-      businessesCount: 1, // Debería ser 1 después de ejecutar
+      businessesCount: 1,
       note: 'Puedes intentar iniciar sesión ahora con las credenciales demo'
     });
   } catch (error) {
@@ -117,29 +120,17 @@ app.post('/api/run-seeds', async (req, res) => {
   }
 });
 
-// Rate limiting (después de las rutas especiales que no requieren rate limiting)
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100, // límite de 100 requests por ventana
-});
-// Aplicar rate limiting solo a rutas específicas, no a /api/run-seeds
-app.use((req, res, next) => {
-  // Excluir /api/run-seeds del rate limiting
-  if (req.path === '/api/run-seeds') {
-    return next();
-  }
-  return limiter(req, res, next);
+// Rate limiting (solo para rutas de API, excluyendo /api/run-seeds)
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  skip: (req) => req.path === '/api/run-seeds',
 });
 
-// Logging middleware para todas las peticiones
-app.use((req, res, next) => {
-  console.log(`[API] ${req.method} ${req.path} - ${new Date().toISOString()}`);
-  next();
-});
+// Aplicar rate limiting a rutas de API
+app.use('/api/', apiLimiter);
 
 // API Routes
-// NOTA: /api/admin/run-seeds debe estar ANTES de /api/admin para evitar autenticación
-
 app.use('/api/auth', authRoutes);
 app.use('/api/businesses', businessRoutes);
 app.use('/api/services', serviceRoutes);
@@ -148,27 +139,18 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/availability', availabilityRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/bot', botRoutes);
-// Las rutas de admin se registran DESPUÉS del endpoint de seeds
 app.use('/api/admin', adminRoutes);
 
-// Error handling (debe estar después de todas las rutas)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+// Error handling
 app.use((err, req, res, next) => {
   console.error('[Error Handler]', err.stack);
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
-// 404 handler (debe estar al final, después de todas las rutas)
+// 404 handler (al final)
 app.use((req, res) => {
   console.log(`[404] Route not found: ${req.method} ${req.path}`);
   res.status(404).json({ error: 'Route not found' });
 });
 
-if (import.meta.url === `file://${process.argv[1]}`) {
-  app.listen(PORT, () => {
-    console.log(`API server running on port ${PORT}`);
-  });
-}
-
 export default app;
-
