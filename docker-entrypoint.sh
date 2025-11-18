@@ -10,16 +10,12 @@ npm run db:migrate || {
   echo "⚠️  Advertencia: Error al ejecutar migraciones. Continuando..."
 }
 
-# Ejecutar seeds (solo en producción, y solo si RUN_SEEDS está configurado)
-# Por defecto, los seeds se ejecutan manualmente desde Render Shell
-# Para ejecutar automáticamente, agrega RUN_SEEDS=true en las variables de entorno
-if [ "$NODE_ENV" = "production" ] && [ "$RUN_SEEDS" = "true" ]; then
-  echo "🌱 Ejecutando seeds de base de datos..."
-  npm run db:seed || {
-    echo "⚠️  Advertencia: Error al ejecutar seeds. Continuando..."
+# Ejecutar seeds automáticamente si no hay datos (solo en producción)
+if [ "$NODE_ENV" = "production" ]; then
+  echo "🌱 Verificando si se necesitan datos iniciales..."
+  node scripts/check-and-seed.js || {
+    echo "⚠️  Advertencia: Error al verificar/ejecutar seeds. Continuando..."
   }
-else
-  echo "ℹ️  Seeds no se ejecutarán automáticamente. Ejecuta 'npm run db:seed' manualmente si es necesario."
 fi
 
 # Volver al directorio raíz
