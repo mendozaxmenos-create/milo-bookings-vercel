@@ -125,6 +125,36 @@ app.post('/api/run-seeds', async (req, res) => {
   }
 });
 
+// Root route - API information
+app.get('/', (req, res) => {
+  res.json({
+    name: 'Milo Bookings API',
+    version: '1.0.0',
+    status: 'running',
+    endpoints: {
+      health: '/health',
+      runSeeds: '/api/run-seeds (POST) - TEMPORAL',
+      auth: '/api/auth',
+      businesses: '/api/businesses',
+      services: '/api/services',
+      bookings: '/api/bookings',
+      settings: '/api/settings',
+      availability: '/api/availability',
+      payments: '/api/payments',
+      bot: '/api/bot',
+      admin: '/api/admin',
+    },
+    documentation: 'See README.md for API documentation',
+  });
+});
+
+// Rate limiting (después de las rutas especiales)
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 100, // límite de 100 requests por ventana
+});
+app.use('/api/', limiter);
+
 // Logging middleware para todas las peticiones
 app.use((req, res, next) => {
   console.log(`[API] ${req.method} ${req.path} - ${new Date().toISOString()}`);
