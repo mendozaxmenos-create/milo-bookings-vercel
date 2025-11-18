@@ -42,6 +42,63 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// TEMPORAL: Endpoint para ejecutar seeds manualmente (solo en producción, sin autenticación)
+// TODO: Eliminar este endpoint después de ejecutar los seeds
+app.post('/api/admin/run-seeds', async (req, res) => {
+  try {
+    console.log('[SeedEndpoint] Ejecutando seeds manualmente...');
+    
+    // Importar dinámicamente para evitar problemas de circular dependencies
+    const knex = (await import('knex')).default;
+    const config = (await import('../knexfile.js')).default;
+    const { seed: seedDemo } = await import('../database/seeds/001_demo_data.js');
+    const { seed: seedSystemUsers } = await import('../database/seeds/003_system_users.js');
+    
+    const environment = process.env.NODE_ENV || 'production';
+    const db = knex(config[environment]);
+    
+    // Verificar si hay negocios
+    const businessesCount = await db('businesses').count('* as count').first();
+    const count = parseInt(businessesCount?.count || 0, 10);
+    
+    console.log(`[SeedEndpoint] Negocios encontrados: ${count}`);
+    
+    if (count > 0) {
+      await db.destroy();
+      return res.json({ 
+        message: 'Ya hay datos en la base de datos',
+        businessesCount: count,
+        note: 'Los seeds no se ejecutaron porque ya existen negocios'
+      });
+    }
+    
+    console.log('[SeedEndpoint] Ejecutando seed de datos demo...');
+    await seedDemo(db);
+    console.log('[SeedEndpoint] Seed de datos demo completado');
+    
+    console.log('[SeedEndpoint] Ejecutando seed de usuarios del sistema...');
+    await seedSystemUsers(db);
+    console.log('[SeedEndpoint] Seed de usuarios del sistema completado');
+    
+    await db.destroy();
+    
+    console.log('[SeedEndpoint] ✅ Seeds ejecutados correctamente');
+    
+    res.json({ 
+      message: 'Seeds ejecutados correctamente',
+      businessesCount: 1, // Debería ser 1 después de ejecutar
+      note: 'Puedes intentar iniciar sesión ahora con las credenciales demo'
+    });
+  } catch (error) {
+    console.error('[SeedEndpoint] ❌ Error:', error);
+    res.status(500).json({ 
+      error: 'Error ejecutando seeds',
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
 // Root route - API information
 app.get('/', (req, res) => {
   res.json({
