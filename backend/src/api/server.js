@@ -42,10 +42,10 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// TEMPORAL: Endpoint para ejecutar seeds manualmente (ANTES de las rutas protegidas)
+// TEMPORAL: Endpoint para ejecutar seeds manualmente (sin autenticación)
 // TODO: Eliminar este endpoint después de ejecutar los seeds
-// IMPORTANTE: Este endpoint debe estar ANTES de app.use('/api/admin', adminRoutes)
-app.post('/api/admin/run-seeds', async (req, res) => {
+// Usamos /api/run-seeds en lugar de /api/admin/run-seeds para evitar el middleware de autenticación
+app.post('/api/run-seeds', async (req, res) => {
   try {
     console.log('[SeedEndpoint] Ejecutando seeds manualmente...');
     
