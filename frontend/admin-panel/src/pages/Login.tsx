@@ -4,8 +4,10 @@ import { useAuthStore } from '../store/authStore';
 import { login } from '../services/api';
 
 export function Login() {
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [businessId, setBusinessId] = useState('');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -18,11 +20,22 @@ export function Login() {
     setLoading(true);
 
     try {
-      const response = await login({ business_id: businessId, phone, password });
+      const loginData = isSuperAdmin
+        ? { email, password }
+        : { business_id: businessId, phone, password };
+      
+      const response = await login(loginData);
       setAuth(response.token, response.user);
-      navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.message || 'Error al iniciar sesión');
+      
+      // Redirigir según el tipo de usuario
+      if (response.user.is_system_user) {
+        navigate('/admin/businesses');
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error al iniciar sesión';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -51,42 +64,81 @@ export function Login() {
           Iniciar Sesión
         </h2>
         
+        <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
+          <button
+            type="button"
+            onClick={() => setIsSuperAdmin(!isSuperAdmin)}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: isSuperAdmin ? '#28a745' : '#6c757d',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            {isSuperAdmin ? '👤 Super Admin' : '🏢 Negocio'}
+          </button>
+        </div>
+        
         <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem' }}>
-              Business ID
-            </label>
-            <input
-              type="text"
-              value={businessId}
-              onChange={(e) => setBusinessId(e.target.value)}
-              required
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid #ddd',
-                borderRadius: '4px'
-              }}
-            />
-          </div>
-          
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem' }}>
-              Teléfono
-            </label>
-            <input
-              type="text"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              required
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid #ddd',
-                borderRadius: '4px'
-              }}
-            />
-          </div>
+          {isSuperAdmin ? (
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem' }}>
+                Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                style={{
+                  width: '100%',
+                  padding: '0.5rem',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px'
+                }}
+              />
+            </div>
+          ) : (
+            <>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem' }}>
+                  Business ID
+                </label>
+                <input
+                  type="text"
+                  value={businessId}
+                  onChange={(e) => setBusinessId(e.target.value)}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px'
+                  }}
+                />
+              </div>
+              
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem' }}>
+                  Teléfono
+                </label>
+                <input
+                  type="text"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px'
+                  }}
+                />
+              </div>
+            </>
+          )}
           
           <div style={{ marginBottom: '1.5rem' }}>
             <label style={{ display: 'block', marginBottom: '0.5rem' }}>

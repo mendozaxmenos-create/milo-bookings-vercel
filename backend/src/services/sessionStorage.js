@@ -17,6 +17,12 @@ export class SessionStorage {
   }
 
   getSessionPath() {
+    // Si hay una variable de entorno que apunta a la sesión de Milo Bot, usarla
+    if (process.env.MILO_BOT_SESSION_PATH) {
+      console.log(`[SessionStorage] Using Milo Bot session path: ${process.env.MILO_BOT_SESSION_PATH}`);
+      return process.env.MILO_BOT_SESSION_PATH;
+    }
+    
     if (this.storageType === 's3' || this.storageType === 'remote') {
       // Para storage remoto, usar una ruta temporal que se sincronizará
       const basePath = process.env.SESSION_STORAGE_PATH || '/tmp/whatsapp-sessions';
@@ -80,7 +86,9 @@ export class SessionStorage {
         if (files.length === 0) {
           await fs.rmdir(this.sessionPath);
         }
-      } catch {}
+      } catch (cleanupError) {
+        console.warn(`Session directory cleanup skipped: ${cleanupError.message}`);
+      }
     } catch (error) {
       console.error(`Error deleting session: ${error.message}`);
     }

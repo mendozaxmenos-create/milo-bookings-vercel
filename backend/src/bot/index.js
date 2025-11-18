@@ -1,9 +1,9 @@
 import pkg from 'whatsapp-web.js';
 const { Client, LocalAuth } = pkg;
 import qrcode from 'qrcode-terminal';
-import { Business } from '../../database/models/Business.js';
 import { MessageHandler } from './handlers/messageHandler.js';
 import { SessionStorage } from '../services/sessionStorage.js';
+import { saveQRCode } from '../services/qrStorage.js';
 
 export class BookingBot {
   constructor(businessId, whatsappNumber) {
@@ -22,8 +22,15 @@ export class BookingBot {
         '--no-first-run',
         '--no-zygote',
         '--disable-gpu',
+        '--disable-software-rasterizer',
+        '--disable-extensions',
       ],
     };
+    
+    // Usar ejecutable de Chromium del sistema si está disponible (para Docker/cloud)
+    if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+      puppeteerOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+    }
 
     // Usar LocalAuth con path personalizado para sesiones persistentes
     const authStrategy = new LocalAuth({
@@ -48,6 +55,9 @@ export class BookingBot {
     this.client.on('qr', (qr) => {
       console.log(`\n📱 QR Code for business ${this.businessId}:`);
       console.log(`   Escanea este código QR con WhatsApp para conectar el bot\n`);
+      
+      // Guardar QR code para acceso via API
+      saveQRCode(this.businessId, qr);
       
       // En producción, también podemos enviar el QR a un webhook o almacenarlo
       if (process.env.QR_WEBHOOK_URL) {
@@ -77,7 +87,12 @@ export class BookingBot {
     });
 
     this.client.on('message', async (msg) => {
-      await this.messageHandler.handleMessage(msg);
+      console.log(`[Bot] Message received from ${msg.from}: "${msg.body?.substring(0, 50)}"`);
+      try {
+        await this.messageHandler.handleMessage(msg);
+      } catch (error) {
+        console.error(`[Bot] Error handling message:`, error);
+      }
     });
 
     await this.client.initialize();

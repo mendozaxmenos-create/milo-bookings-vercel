@@ -11,6 +11,12 @@ router.use(authenticateToken);
 // Listar reservas del negocio
 router.get('/', async (req, res) => {
   try {
+    console.log('[API] GET /bookings - User:', {
+      user_id: req.user.user_id,
+      business_id: req.user.business_id,
+      role: req.user.role,
+    });
+    
     const filters = {
       status: req.query.status,
       date: req.query.date,
@@ -19,10 +25,29 @@ router.get('/', async (req, res) => {
       offset: parseInt(req.query.offset) || 0,
     };
 
+    console.log('[API] GET /bookings - Filters:', filters);
+
     const bookings = await Booking.findByBusiness(req.user.business_id, filters);
+    
+    console.log('[API] GET /bookings - Found bookings:', {
+      count: bookings?.length || 0,
+      business_id: req.user.business_id,
+      statuses: bookings?.map(b => b.status) || [],
+    });
+    
+    if (bookings && bookings.length > 0) {
+      console.log('[API] GET /bookings - Sample booking:', {
+        id: bookings[0].id,
+        customer_name: bookings[0].customer_name,
+        customer_phone: bookings[0].customer_phone,
+        status: bookings[0].status,
+        booking_date: bookings[0].booking_date,
+      });
+    }
+    
     res.json({ data: bookings });
   } catch (error) {
-    console.error('Error listing bookings:', error);
+    console.error('[API] Error listing bookings:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -132,7 +157,7 @@ router.patch('/:id/status', async (req, res) => {
     }
 
     const { status } = req.body;
-    if (!['pending', 'confirmed', 'cancelled', 'completed'].includes(status)) {
+    if (!['pending', 'pending_payment', 'confirmed', 'cancelled', 'completed'].includes(status)) {
       return res.status(400).json({ error: 'Invalid status' });
     }
 

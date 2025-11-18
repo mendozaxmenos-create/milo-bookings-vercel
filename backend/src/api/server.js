@@ -9,6 +9,9 @@ import serviceRoutes from './routes/services.js';
 import bookingRoutes from './routes/bookings.js';
 import settingsRoutes from './routes/settings.js';
 import availabilityRoutes from './routes/availability.js';
+import paymentRoutes from './routes/payments.js';
+import botRoutes from './routes/bot.js';
+import adminRoutes from './routes/admin.js';
 
 dotenv.config();
 
@@ -36,6 +39,12 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Logging middleware para todas las peticiones
+app.use((req, res, next) => {
+  console.log(`[API] ${req.method} ${req.path} - ${new Date().toISOString()}`);
+  next();
+});
+
 // API Routes
 
 app.use('/api/auth', authRoutes);
@@ -44,8 +53,12 @@ app.use('/api/services', serviceRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/availability', availabilityRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/bot', botRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Error handling
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Something went wrong!' });

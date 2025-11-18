@@ -98,7 +98,13 @@ export function Availability() {
     },
   });
 
-  const handleUpdateHour = (dayOfWeek: number, field: string, value: any) => {
+  type BusinessHourField = 'is_open' | 'open_time' | 'close_time';
+
+  const handleUpdateHour = (
+    dayOfWeek: number,
+    field: BusinessHourField,
+    value: boolean | string
+  ) => {
     const currentHour = hoursMap.get(dayOfWeek) || {
       day_of_week: dayOfWeek,
       open_time: '09:00:00',
@@ -433,7 +439,7 @@ export function Availability() {
               </div>
             ) : (
               <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
-                No hay horarios bloqueados. Usa el botón "+ Bloquear Horario" para agregar uno.
+                No hay horarios bloqueados. Usa el botón &quot;+ Bloquear Horario&quot; para agregar uno.
               </div>
             )}
           </div>

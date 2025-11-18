@@ -11,11 +11,24 @@ router.use(authenticateToken);
 // Listar servicios del negocio
 router.get('/', async (req, res) => {
   try {
+    console.log('[API] GET /services - User:', {
+      user_id: req.user.user_id,
+      business_id: req.user.business_id,
+      role: req.user.role,
+    });
+    
     const includeInactive = req.query.includeInactive === 'true';
     const services = await Service.findByBusiness(req.user.business_id, includeInactive);
+    
+    console.log('[API] GET /services - Found services:', {
+      count: services?.length || 0,
+      business_id: req.user.business_id,
+      includeInactive,
+    });
+    
     res.json({ data: services });
   } catch (error) {
-    console.error('Error listing services:', error);
+    console.error('[API] Error listing services:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

@@ -1,17 +1,55 @@
+# Dependencies
 node_modules
 npm-debug.log
+yarn-error.log
+
+# Environment
 .env
 .env.local
-.git
-.gitignore
-README.md
-*.md
+.env.production
+.env.*.local
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+backend/data/
+
+# WhatsApp Sessions
+.wwebjs_auth
+backend/data/whatsapp-sessions/
+
+# Build outputs
+dist
+build
+.next
+out
+
+# IDE
 .vscode
 .idea
-backend/data/*.db
-backend/data/*.db-journal
-backend/data/whatsapp-sessions
+*.swp
+*.swo
+*~
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+!README.md
+
+# Tests
 coverage
 .nyc_output
+*.test.js
+*.spec.js
 
+# Logs
+logs
+*.log

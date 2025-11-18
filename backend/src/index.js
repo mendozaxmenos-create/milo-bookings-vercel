@@ -2,13 +2,15 @@ import dotenv from 'dotenv';
 import app from './api/server.js';
 import { BookingBot } from './bot/index.js';
 import { Business } from '../database/models/Business.js';
+import { startTrialChecker } from './services/trialService.js';
 
 dotenv.config();
 
 const PORT = process.env.PORT || 3000;
 
 // Almacenar instancias de bots activos
-const activeBots = new Map();
+// Exportar para uso en API
+export const activeBots = new Map();
 
 // Función para inicializar bots de todos los negocios activos
 async function initializeBots() {
@@ -36,13 +38,22 @@ async function initializeBots() {
 }
 
 // Inicializar servidor
-app.listen(PORT, async () => {
+app.listen(PORT, '0.0.0.0', async () => {
+  console.log('='.repeat(60));
   console.log(`🚀 Milo Bookings Backend running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🌐 API URL: http://localhost:${PORT}`);
+  console.log(`💚 Health check: http://localhost:${PORT}/health`);
+  console.log('='.repeat(60));
   console.log('');
   
   // Inicializar bots después de que el servidor esté listo
   await initializeBots();
+  
+  // Iniciar servicio de verificación de trials
+  startTrialChecker();
+  
+  console.log('\n✅ Backend listo para recibir peticiones\n');
 });
 
 // Manejo de errores no capturados

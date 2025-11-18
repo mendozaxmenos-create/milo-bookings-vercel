@@ -1,7 +1,7 @@
-# Dockerfile para Milo Bookings
+# Dockerfile para Milo Bookings - Optimizado para producción en la nube
 FROM node:18-slim
 
-# Instalar dependencias del sistema necesarias para Puppeteer
+# Instalar dependencias del sistema necesarias para Puppeteer y PostgreSQL
 RUN apt-get update && apt-get install -y \
     chromium \
     chromium-sandbox \
@@ -23,27 +23,30 @@ RUN apt-get update && apt-get install -y \
     libxfixes3 \
     libxrandr2 \
     xdg-utils \
+    postgresql-client \
+    curl \
     && rm -rf /var/lib/apt/lists/*
+
+# Configurar Puppeteer para usar Chromium del sistema
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
 # Establecer directorio de trabajo
 WORKDIR /app
 
-# Copiar archivos de configuración
+# Copiar archivos de configuración primero (para mejor cacheo de Docker)
 COPY package*.json ./
 COPY backend/package*.json ./backend/
 
-# Instalar dependencias
-RUN npm install --legacy-peer-deps
-RUN cd backend && npm install
+# Instalar dependencias del workspace
+RUN npm ci --legacy-peer-deps --workspaces
 
 # Copiar código fuente
 COPY . .
 
 # Crear directorios necesarios
-RUN mkdir -p backend/data backend/data/whatsapp-sessions
-
-# Ejecutar migraciones
-RUN cd backend && npm run db:migrate || true
+RUN mkdir -p backend/data backend/data/whatsapp-sessions && \
+    chmod -R 755 backend/data
 
 # Exponer puerto
 EXPOSE 3000
@@ -54,6 +57,14 @@ ENV PORT=3000
 ENV SESSION_STORAGE_TYPE=local
 ENV SESSION_STORAGE_PATH=/app/backend/data/whatsapp-sessions
 
-# Comando de inicio
+# Healthcheck para monitoreo
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost:${PORT:-3000}/health || exit 1
+
+# Script de inicio que ejecuta migraciones antes de iniciar
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["node", "backend/src/index.js"]
 

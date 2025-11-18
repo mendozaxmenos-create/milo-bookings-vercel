@@ -1,34 +1,100 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { useAuthStore } from '../store/authStore';
 import api from '../services/api';
 
-export function Dashboard() {
-  const { user } = useAuthStore();
+type ServiceSummary = {
+  id: string;
+  is_active: boolean;
+};
 
-  const { data: services } = useQuery({
+type BookingStatus = 'pending' | 'pending_payment' | 'confirmed' | 'cancelled' | 'completed';
+
+type BookingSummary = {
+  id: string;
+  service_name: string;
+  customer_name?: string;
+  customer_phone: string;
+  booking_date: string;
+  booking_time: string;
+  status: BookingStatus;
+};
+
+export function Dashboard() {
+  const { data: services, isLoading: servicesLoading, error: servicesError } = useQuery<{ data: ServiceSummary[] }>({
     queryKey: ['services'],
     queryFn: async () => {
-      const response = await api.get('/services');
-      return response.data;
+      console.log('[Dashboard] Fetching services...');
+      try {
+        const response = await api.get('/services');
+        console.log('[Dashboard] Services response:', {
+          data: response.data,
+          count: response.data?.data?.length || 0,
+        });
+        return response.data;
+      } catch (error) {
+        console.error('[Dashboard] Error fetching services:', error);
+        throw error;
+      }
     },
   });
 
-  const { data: bookings } = useQuery({
+  const { data: bookings, isLoading: bookingsLoading, error: bookingsError } = useQuery<{ data: BookingSummary[] }>({
     queryKey: ['bookings'],
     queryFn: async () => {
-      const response = await api.get('/bookings');
-      return response.data;
+      console.log('[Dashboard] Fetching bookings...');
+      try {
+        const response = await api.get('/bookings');
+        console.log('[Dashboard] Bookings response:', {
+          data: response.data,
+          count: response.data?.data?.length || 0,
+          statuses: response.data?.data?.map((b: BookingSummary) => b.status) || [],
+        });
+        return response.data;
+      } catch (error) {
+        console.error('[Dashboard] Error fetching bookings:', error);
+        throw error;
+      }
     },
   });
 
   const stats = {
     totalServices: services?.data?.length || 0,
-    activeServices: services?.data?.filter((s: any) => s.is_active).length || 0,
+    activeServices: services?.data?.filter((service) => service.is_active).length || 0,
     totalBookings: bookings?.data?.length || 0,
-    pendingBookings: bookings?.data?.filter((b: any) => b.status === 'pending').length || 0,
-    confirmedBookings: bookings?.data?.filter((b: any) => b.status === 'confirmed').length || 0,
+    pendingBookings: bookings?.data?.filter((booking) => 
+      booking.status === 'pending' || booking.status === 'pending_payment'
+    ).length || 0,
+    confirmedBookings: bookings?.data?.filter((booking) => booking.status === 'confirmed').length || 0,
   };
+
+  // Log de estadísticas calculadas
+  console.log('[Dashboard] Calculated stats:', stats);
+  console.log('[Dashboard] Raw data:', {
+    servicesCount: services?.data?.length,
+    bookingsCount: bookings?.data?.length,
+    bookingsStatuses: bookings?.data?.map(b => b.status) || [],
+  });
+
+  if (servicesLoading || bookingsLoading) {
+    return <div style={{ padding: '2rem' }}>Cargando estadísticas...</div>;
+  }
+
+  if (servicesError || bookingsError) {
+    return (
+      <div style={{ padding: '2rem' }}>
+        <h1 style={{ marginBottom: '2rem' }}>Dashboard</h1>
+        <div style={{ 
+          padding: '1rem', 
+          backgroundColor: '#f8d7da', 
+          color: '#721c24', 
+          borderRadius: '4px',
+          marginBottom: '1rem'
+        }}>
+          Error al cargar datos: {servicesError?.message || bookingsError?.message}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: '2rem' }}>
@@ -140,7 +206,7 @@ export function Dashboard() {
             Ver todas →
           </Link>
         </div>
-        {bookings?.data?.slice(0, 5).map((booking: any) => (
+        {bookings?.data?.slice(0, 5).map((booking) => (
           <div
             key={booking.id}
             style={{
@@ -166,6 +232,7 @@ export function Dashboard() {
                 fontSize: '0.875rem',
               }}>
                 {booking.status === 'pending' && 'Pendiente'}
+                {booking.status === 'pending_payment' && 'Pago Pendiente'}
                 {booking.status === 'confirmed' && 'Confirmada'}
                 {booking.status === 'cancelled' && 'Cancelada'}
                 {booking.status === 'completed' && 'Completada'}

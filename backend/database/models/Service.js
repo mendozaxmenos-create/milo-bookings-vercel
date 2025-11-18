@@ -26,11 +26,25 @@ export class Service {
   }
 
   static async findByBusiness(businessId, includeInactive = false) {
+    console.log('[Service.findByBusiness] Querying services:', {
+      businessId,
+      includeInactive,
+    });
+    
     const query = db('services').where({ business_id: businessId });
     if (!includeInactive) {
       query.where({ is_active: true });
     }
-    return query.orderBy('display_order', 'asc').orderBy('name', 'asc');
+    
+    const services = await query.orderBy('display_order', 'asc').orderBy('name', 'asc');
+    
+    console.log('[Service.findByBusiness] Result:', {
+      businessId,
+      count: services?.length || 0,
+      services: services?.map(s => ({ id: s.id, name: s.name, is_active: s.is_active })) || [],
+    });
+    
+    return services;
   }
 
   static async update(id, data) {

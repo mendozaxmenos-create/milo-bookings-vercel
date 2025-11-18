@@ -8,6 +8,7 @@ export const validateBusiness = (data, isUpdate = false) => {
     whatsapp_number: isUpdate ? Joi.string().pattern(/^\+?[1-9]\d{1,14}$/).optional() : Joi.string().pattern(/^\+?[1-9]\d{1,14}$/).required(),
     owner_phone: isUpdate ? Joi.string().pattern(/^\+?[1-9]\d{1,14}$/).optional() : Joi.string().pattern(/^\+?[1-9]\d{1,14}$/).required(),
     is_active: Joi.boolean().optional(),
+    is_trial: Joi.boolean().optional(),
   });
 
   return schema.validate(data);
@@ -33,7 +34,7 @@ export const validateBooking = (data, isUpdate = false) => {
     customer_name: Joi.string().max(255).optional().allow('', null),
     booking_date: isUpdate ? Joi.date().iso().optional() : Joi.date().iso().required(),
     booking_time: isUpdate ? Joi.string().pattern(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/).optional() : Joi.string().pattern(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/).required(),
-    status: Joi.string().valid('pending', 'confirmed', 'cancelled', 'completed').optional(),
+    status: Joi.string().valid('pending', 'pending_payment', 'confirmed', 'cancelled', 'completed').optional(),
     payment_status: Joi.string().valid('pending', 'paid', 'refunded').optional(),
     payment_id: Joi.string().optional().allow('', null),
     amount: isUpdate ? Joi.number().min(0).precision(2).optional() : Joi.number().min(0).precision(2).required(),
@@ -44,11 +45,22 @@ export const validateBooking = (data, isUpdate = false) => {
 };
 
 export const validateLogin = (data) => {
+  // Para super admin: email + password
+  // Para business user: business_id + phone + password
   const schema = Joi.object({
-    business_id: Joi.string().required(),
-    phone: Joi.string().pattern(/^\+?[1-9]\d{1,14}$/).required(),
+    email: Joi.string().email().optional(),
+    business_id: Joi.string().when('email', {
+      is: Joi.exist(),
+      then: Joi.optional(),
+      otherwise: Joi.required(),
+    }),
+    phone: Joi.string().pattern(/^\+?[1-9]\d{1,14}$/).when('email', {
+      is: Joi.exist(),
+      then: Joi.optional(),
+      otherwise: Joi.required(),
+    }),
     password: Joi.string().min(6).required(),
-  });
+  }).or('email', 'business_id');
 
   return schema.validate(data);
 };
@@ -59,6 +71,18 @@ export const validateRegister = (data) => {
     phone: Joi.string().pattern(/^\+?[1-9]\d{1,14}$/).required(),
     password: Joi.string().min(6).required(),
     role: Joi.string().valid('owner', 'admin', 'staff').optional(),
+  });
+
+  return schema.validate(data);
+};
+
+export const validatePaymentConfig = (data) => {
+  const schema = Joi.object({
+    accessToken: Joi.string().min(10).required(),
+    publicKey: Joi.string().min(10).required(),
+    refreshToken: Joi.string().optional().allow('', null),
+    userId: Joi.string().optional().allow('', null),
+    isActive: Joi.boolean().optional(),
   });
 
   return schema.validate(data);

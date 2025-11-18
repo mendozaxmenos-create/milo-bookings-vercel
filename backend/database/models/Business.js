@@ -4,6 +4,18 @@ import { v4 as uuidv4 } from 'uuid';
 export class Business {
   static async create(data) {
     const id = data.id || uuidv4();
+    const now = new Date();
+    
+    // Calcular fechas de trial si se solicita
+    let trialStartDate = null;
+    let trialEndDate = null;
+    if (data.is_trial) {
+      trialStartDate = now.toISOString();
+      const endDate = new Date(now);
+      endDate.setDate(endDate.getDate() + 7); // 7 días de prueba
+      trialEndDate = endDate.toISOString();
+    }
+    
     const business = {
       id,
       name: data.name,
@@ -12,8 +24,11 @@ export class Business {
       whatsapp_number: data.whatsapp_number,
       owner_phone: data.owner_phone,
       is_active: data.is_active ?? true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      is_trial: data.is_trial ?? false,
+      trial_start_date: trialStartDate,
+      trial_end_date: trialEndDate,
+      created_at: now.toISOString(),
+      updated_at: now.toISOString(),
     };
 
     await db('businesses').insert(business);
@@ -46,11 +61,23 @@ export class Business {
     return db('businesses').where({ id }).delete();
   }
 
-  static async list(limit = 100, offset = 0) {
-    return db('businesses')
-      .where({ is_active: true })
+  static async list(limit = 100, offset = 0, includeInactive = false) {
+    let query = db('businesses');
+    
+    if (!includeInactive) {
+      query = query.where({ is_active: true });
+    }
+    
+    return query
       .limit(limit)
       .offset(offset)
+      .orderBy('created_at', 'desc');
+  }
+  
+  static async findAllWithTrials() {
+    return db('businesses')
+      .where({ is_trial: true })
+      .whereNotNull('trial_end_date')
       .orderBy('created_at', 'desc');
   }
 

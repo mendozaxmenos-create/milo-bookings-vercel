@@ -9,7 +9,7 @@ interface Booking {
   customer_name?: string;
   booking_date: string;
   booking_time: string;
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  status: 'pending' | 'pending_payment' | 'confirmed' | 'cancelled' | 'completed';
   payment_status: 'pending' | 'paid' | 'refunded';
   amount: number;
 }
@@ -56,6 +56,7 @@ export function Bookings() {
       case 'confirmed':
         return { bg: '#d4edda', color: '#155724' };
       case 'pending':
+      case 'pending_payment':
         return { bg: '#fff3cd', color: '#856404' };
       case 'cancelled':
         return { bg: '#f8d7da', color: '#721c24' };
@@ -107,6 +108,7 @@ export function Bookings() {
             >
               <option value="">Todos</option>
               <option value="pending">Pendiente</option>
+              <option value="pending_payment">Pago Pendiente</option>
               <option value="confirmed">Confirmada</option>
               <option value="cancelled">Cancelada</option>
               <option value="completed">Completada</option>
@@ -173,6 +175,7 @@ export function Bookings() {
                       fontSize: '0.875rem',
                     }}>
                       {booking.status === 'pending' && 'Pendiente'}
+                      {booking.status === 'pending_payment' && 'Pago Pendiente'}
                       {booking.status === 'confirmed' && 'Confirmada'}
                       {booking.status === 'cancelled' && 'Cancelada'}
                       {booking.status === 'completed' && 'Completada'}
@@ -204,10 +207,11 @@ export function Bookings() {
                             fontSize: '0.875rem',
                           }}
                         >
-                          <option value="pending">Pendiente</option>
-                          <option value="confirmed">Confirmar</option>
-                          <option value="cancelled">Cancelar</option>
-                          <option value="completed">Completar</option>
+              <option value="pending">Pendiente</option>
+              <option value="pending_payment">Pago Pendiente</option>
+              <option value="confirmed">Confirmar</option>
+              <option value="cancelled">Cancelar</option>
+              <option value="completed">Completar</option>
                         </select>
                       )}
                       <button

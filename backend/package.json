@@ -13,31 +13,34 @@
     "test:watch": "jest --watch",
     "db:migrate": "knex migrate:latest",
     "db:rollback": "knex migrate:rollback",
-    "db:seed": "knex seed:run"
+    "db:seed": "knex seed:run",
+    "fix:phones": "node scripts/fix-customer-phones.js",
+    "verify:data": "node scripts/verify-data.js",
+    "show:credentials": "node scripts/show-credentials.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "whatsapp-web.js": "^1.23.0",
-    "sqlite3": "^5.1.7",
-    "knex": "^2.5.1",
     "bcrypt": "^5.1.1",
-    "jsonwebtoken": "^9.0.2",
-    "mercadopago": "^2.0.0",
-    "dotenv": "^16.3.1",
     "cors": "^2.8.5",
-    "helmet": "^7.1.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
     "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
     "joi": "^17.11.0",
-    "winston": "^3.11.0",
+    "jsonwebtoken": "^9.0.2",
+    "knex": "^2.5.1",
+    "mercadopago": "^2.10.0",
+    "pg": "^8.11.3",
+    "qrcode-terminal": "^0.12.0",
+    "sqlite3": "^5.1.7",
     "uuid": "^9.0.1",
-    "qrcode-terminal": "^0.12.0"
+    "whatsapp-web.js": "^1.23.0",
+    "winston": "^3.11.0"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2",
-    "jest": "^29.7.0",
-    "supertest": "^6.3.3",
     "@types/node": "^20.10.6",
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.2",
+    "supertest": "^6.3.3",
     "typescript": "^5.3.3"
   }
 }
-

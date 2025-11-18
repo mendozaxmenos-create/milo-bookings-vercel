@@ -15,6 +15,9 @@ export class Booking {
       status: data.status || 'pending',
       payment_status: data.payment_status || 'pending',
       payment_id: data.payment_id,
+      payment_preference_id: data.payment_preference_id || null,
+      payment_init_point: data.payment_init_point || null,
+      payment_sandbox_init_point: data.payment_sandbox_init_point || null,
       amount: data.amount,
       notes: data.notes,
       created_at: new Date().toISOString(),
@@ -38,6 +41,22 @@ export class Booking {
   }
 
   static async findByBusiness(businessId, filters = {}) {
+    console.log('[Booking.findByBusiness] Querying bookings:', {
+      businessId,
+      filters,
+    });
+    
+    // Primero verificar cuántas reservas hay en total para este negocio
+    const totalCount = await db('bookings')
+      .where({ business_id: businessId })
+      .count('* as count')
+      .first();
+    
+    console.log('[Booking.findByBusiness] Total bookings in DB for business:', {
+      businessId,
+      totalCount: totalCount?.count || 0,
+    });
+    
     const query = db('bookings')
       .join('services', 'bookings.service_id', 'services.id')
       .select(
@@ -59,11 +78,38 @@ export class Booking {
       query.where({ 'bookings.customer_phone': filters.customer_phone });
     }
 
-    return query
+    const bookings = await query
       .orderBy('bookings.booking_date', 'desc')
       .orderBy('bookings.booking_time', 'desc')
       .limit(filters.limit || 100)
       .offset(filters.offset || 0);
+    
+    console.log('[Booking.findByBusiness] Query result:', {
+      businessId,
+      requestedCount: filters.limit || 100,
+      returnedCount: bookings?.length || 0,
+      statuses: bookings?.map(b => b.status) || [],
+      sampleIds: bookings?.slice(0, 3).map(b => b.id) || [],
+    });
+    
+    // Si no hay resultados pero debería haber, verificar el join
+    if ((!bookings || bookings.length === 0) && totalCount?.count > 0) {
+      console.warn('[Booking.findByBusiness] WARNING: No bookings returned but totalCount > 0. Checking join issue...');
+      
+      // Verificar si hay reservas sin servicio asociado
+      const bookingsWithoutService = await db('bookings')
+        .where({ business_id: businessId })
+        .whereNotIn('service_id', db('services').select('id').where({ business_id: businessId }));
+      
+      if (bookingsWithoutService.length > 0) {
+        console.error('[Booking.findByBusiness] ERROR: Found bookings without valid service:', {
+          count: bookingsWithoutService.length,
+          bookingIds: bookingsWithoutService.map(b => b.id),
+        });
+      }
+    }
+    
+    return bookings;
   }
 
   static async findByCustomer(customerPhone) {
@@ -87,6 +133,12 @@ export class Booking {
         updated_at: new Date().toISOString(),
       });
     return this.findById(id);
+  }
+
+  static async findByPaymentPreference(preferenceId) {
+    return db('bookings')
+      .where({ payment_preference_id: preferenceId })
+      .first();
   }
 
   static async delete(id) {

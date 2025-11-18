@@ -1,417 +1,192 @@
 # 🚀 Guía de Deployment - Milo Bookings
 
-Esta guía te ayudará a desplegar Milo Bookings en la nube.
+Esta guía te ayudará a desplegar Milo Bookings en diferentes plataformas cloud.
 
 ## 📋 Requisitos Previos
 
-- Cuenta en un servicio de hosting (Railway, Render, Heroku, etc.)
-- Base de datos PostgreSQL (proporcionada por el hosting o externa)
-- Cuenta de WhatsApp Business o número de teléfono
+- Cuenta en una plataforma cloud (Railway, Render, Fly.io, etc.)
+- Base de datos PostgreSQL (proporcionada por la plataforma o externa)
 - Credenciales de MercadoPago
+- Dominio (opcional, para webhooks)
 
----
+## 🔧 Variables de Entorno Necesarias
 
-## 🌐 Opciones de Deployment
-
-### 1. Railway (Recomendado)
-
-Railway es ideal para este proyecto porque:
-- ✅ Soporta PostgreSQL automáticamente
-- ✅ Build automático desde GitHub
-- ✅ Variables de entorno fáciles de configurar
-- ✅ Storage persistente para sesiones
-
-#### Pasos:
-
-1. **Crear cuenta en Railway**
-   - Ve a [railway.app](https://railway.app)
-   - Conecta tu cuenta de GitHub
-
-2. **Crear nuevo proyecto**
-   - Click en "New Project"
-   - Selecciona "Deploy from GitHub repo"
-   - Elige tu repositorio `milo-bookings`
-
-3. **Agregar Base de Datos PostgreSQL**
-   - Click en "New" → "Database" → "PostgreSQL"
-   - Railway creará automáticamente la base de datos
-
-4. **Configurar Variables de Entorno**
-   En la pestaña "Variables", agrega:
-
-   ```env
-   NODE_ENV=production
-   PORT=3000
-   DATABASE_URL=${{Postgres.DATABASE_URL}}
-   JWT_SECRET=tu_secreto_jwt_super_seguro_aqui
-   SESSION_STORAGE_TYPE=local
-   SESSION_STORAGE_PATH=/app/backend/data/whatsapp-sessions
-   MERCADOPAGO_ACCESS_TOKEN=tu_token_de_mercadopago
-   MERCADOPAGO_PUBLIC_KEY=tu_public_key
-   ALLOWED_ORIGINS=https://tu-dominio.com
-   QR_WEBHOOK_URL=https://tu-dominio.com/api/webhooks/qr
-   ```
-
-5. **Deploy**
-   - Railway detectará automáticamente el `railway.json`
-   - El build se ejecutará automáticamente
-   - Las migraciones se ejecutarán durante el build
-
----
-
-### 2. Render
-
-Render es otra excelente opción con plan gratuito.
-
-#### Pasos:
-
-1. **Crear cuenta en Render**
-   - Ve a [render.com](https://render.com)
-   - Conecta tu cuenta de GitHub
-
-2. **Crear Web Service**
-   - Click en "New" → "Web Service"
-   - Conecta tu repositorio
-   - Configura:
-     - **Name**: milo-bookings-backend
-     - **Environment**: Node
-     - **Build Command**: `cd backend && npm install && npm run db:migrate`
-     - **Start Command**: `cd backend && npm start`
-
-3. **Agregar Base de Datos PostgreSQL**
-   - Click en "New" → "PostgreSQL"
-   - Render creará la base de datos automáticamente
-
-4. **Configurar Variables de Entorno**
-   Similar a Railway, agrega todas las variables necesarias.
-
-5. **Configurar Storage Persistente**
-   - Render no tiene storage persistente por defecto
-   - Considera usar S3 para sesiones de WhatsApp
-   - O usa un servicio externo de storage
-
----
-
-### 3. Heroku
-
-#### Pasos:
-
-1. **Instalar Heroku CLI**
-   ```bash
-   npm install -g heroku
-   ```
-
-2. **Login y crear app**
-   ```bash
-   heroku login
-   heroku create milo-bookings
-   ```
-
-3. **Agregar PostgreSQL**
-   ```bash
-   heroku addons:create heroku-postgresql:hobby-dev
-   ```
-
-4. **Configurar Variables**
-   ```bash
-   heroku config:set NODE_ENV=production
-   heroku config:set JWT_SECRET=tu_secreto
-   # ... más variables
-   ```
-
-5. **Deploy**
-   ```bash
-   git push heroku main
-   ```
-
----
-
-## 🔧 Configuración de Variables de Entorno
-
-### Backend - Variables Requeridas
-
+### Base de Datos
 ```env
-# Servidor
+# Opción 1: URL completa (recomendado)
+DATABASE_URL=postgresql://user:password@host:5432/milo_bookings
+
+# Opción 2: Variables individuales
+DB_HOST=your-db-host
+DB_PORT=5432
+DB_NAME=milo_bookings
+DB_USER=postgres
+DB_PASSWORD=your_password
+```
+
+### Seguridad
+```env
+JWT_SECRET=your-super-secret-jwt-key-min-32-characters
 NODE_ENV=production
-PORT=3000
-
-# Base de Datos
-DATABASE_URL=postgresql://user:password@host:5432/database
-
-# JWT
-JWT_SECRET=tu_secreto_jwt_muy_seguro_minimo_32_caracteres
-
-# WhatsApp
-SESSION_STORAGE_TYPE=local
-SESSION_STORAGE_PATH=/tmp/whatsapp-sessions
-QR_WEBHOOK_URL=https://tu-dominio.com/api/webhooks/qr
-
-# MercadoPago
-MERCADOPAGO_ACCESS_TOKEN=tu_access_token
-MERCADOPAGO_PUBLIC_KEY=tu_public_key
-
-# CORS - IMPORTANTE: Incluir la URL del frontend
-ALLOWED_ORIGINS=https://admin.tu-dominio.com,https://tu-dominio.com
-FRONTEND_URL=https://admin.tu-dominio.com
 ```
 
-### Frontend - Variables Requeridas
-
+### CORS
 ```env
-# URL del API Backend (IMPORTANTE: URL completa del backend)
-VITE_API_URL=https://api.tu-dominio.com
-
-# Puerto (solo para desarrollo local)
-VITE_PORT=3001
+ALLOWED_ORIGINS=https://your-frontend-domain.com
 ```
 
-### Variables Opcionales
-
+### MercadoPago
 ```env
-# Para mostrar QR en producción (útil para debugging)
-SHOW_QR=true
-
-# Para storage remoto de sesiones (S3)
-AWS_S3_BUCKET=tu-bucket
-AWS_ACCESS_KEY_ID=tu-key
-AWS_SECRET_ACCESS_KEY=tu-secret
-AWS_REGION=us-east-1
+MERCADOPAGO_ACCESS_TOKEN=your_access_token
+MERCADOPAGO_PUBLIC_KEY=your_public_key
+MERCADOPAGO_PRODUCTION=true
+WEBHOOK_BASE_URL=https://your-domain.com
+MP_SUCCESS_URL=https://your-domain.com/payments/success
+MP_FAILURE_URL=https://your-domain.com/payments/failure
+MP_PENDING_URL=https://your-domain.com/payments/pending
 ```
 
----
-
-## 📱 Configuración de WhatsApp en la Nube
-
-### Opción 1: Sesiones Persistentes (Actual)
-
-El bot guarda las sesiones en el storage del servidor. **Importante**: 
-- En Railway/Render, el storage es persistente entre deployments
-- En Heroku, el storage es efímero (se pierde en cada restart)
-- Para Heroku, considera usar S3 o un servicio externo
-
-### Opción 2: WhatsApp Business API (Recomendado para Producción)
-
-Para producción, considera migrar a WhatsApp Business API oficial:
-- Más estable
-- No requiere mantener sesiones
-- Mejor para escalabilidad
-
-### Opción 3: Webhook para QR
-
-Configura `QR_WEBHOOK_URL` para recibir códigos QR en tu aplicación:
-- Útil para mostrar QR en el panel de administración
-- Permite escanear QR sin acceso a logs del servidor
-
----
-
-## 🗄️ Migración de Base de Datos
-
-### Desde SQLite a PostgreSQL
-
-1. **Exportar datos de SQLite**
-   ```bash
-   sqlite3 backend/data/bookings.db .dump > backup.sql
-   ```
-
-2. **Importar a PostgreSQL**
-   ```bash
-   psql $DATABASE_URL < backup.sql
-   ```
-
-### Ejecutar Migraciones en Producción
-
-Las migraciones se ejecutan automáticamente durante el build si están configuradas correctamente.
-
-Para ejecutarlas manualmente:
-```bash
-cd backend
-npm run db:migrate
+### WhatsApp (Opcional)
+```env
+# Si quieres reutilizar sesión de otro bot
+MILO_BOT_SESSION_PATH=/path/to/session
 ```
 
----
+### Puppeteer (Ya configurado en Dockerfile)
+```env
+PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+```
 
-## 🎨 Deployment del Frontend
+## 🚂 Deployment en Railway
 
-El frontend también necesita desplegarse en la nube. Tienes varias opciones:
+1. **Conectar repositorio:**
+   - Ve a [Railway](https://railway.app)
+   - Crea un nuevo proyecto
+   - Conecta tu repositorio de GitHub
 
-### Opción 1: Render (Static Site)
+2. **Agregar base de datos PostgreSQL:**
+   - En Railway, agrega un servicio PostgreSQL
+   - Railway automáticamente crea la variable `DATABASE_URL`
 
-1. **Crear Static Site en Render**
-   - Click en "New" → "Static Site"
+3. **Configurar variables de entorno:**
+   - En la configuración del servicio, agrega todas las variables de entorno necesarias
+   - Railway detectará automáticamente el `Dockerfile`
+
+4. **Deploy:**
+   - Railway desplegará automáticamente cuando hagas push a la rama principal
+   - Las migraciones se ejecutarán automáticamente al iniciar
+
+## 🎨 Deployment en Render
+
+1. **Crear servicio:**
+   - Ve a [Render](https://render.com)
+   - Crea un nuevo "Web Service"
    - Conecta tu repositorio
-   - Configura:
-     - **Name**: milo-bookings-frontend
-     - **Build Command**: `cd frontend/admin-panel && npm install && npm run build`
-     - **Publish Directory**: `frontend/admin-panel/dist`
 
-2. **Configurar Variables de Entorno**
-   ```env
-   VITE_API_URL=https://tu-backend-url.com
-   ```
+2. **Configuración:**
+   - **Build Command:** (dejar vacío, Render usa Dockerfile)
+   - **Start Command:** `node backend/src/index.js`
+   - **Environment:** Docker
 
-3. **Deploy**
-   - Render construirá y desplegará automáticamente
+3. **Base de datos:**
+   - Crea un servicio PostgreSQL en Render
+   - Render creará automáticamente `DATABASE_URL`
 
-### Opción 2: Vercel
+4. **Variables de entorno:**
+   - Agrega todas las variables necesarias en la sección "Environment"
 
-1. **Conectar repositorio en Vercel**
-   - Ve a [vercel.com](https://vercel.com)
-   - Importa tu repositorio
+5. **Deploy:**
+   - Render desplegará automáticamente
+   - El archivo `render.yaml` ya está configurado
 
-2. **Configurar proyecto**
-   - **Root Directory**: `frontend/admin-panel`
-   - **Build Command**: `npm run build`
-   - **Output Directory**: `dist`
+## 🪂 Deployment en Fly.io
 
-3. **Variables de Entorno**
-   ```env
-   VITE_API_URL=https://tu-backend-url.com
-   ```
-
-### Opción 3: Netlify
-
-Similar a Vercel, Netlify también soporta deployment de sitios estáticos.
-
-### Opción 4: Mismo Servidor (Backend sirve Frontend)
-
-Puedes configurar el backend para servir el frontend estático:
-
-1. **Agregar middleware en Express**:
-   ```javascript
-   // En backend/src/api/server.js
-   import express from 'express';
-   import path from 'path';
-   
-   // Servir frontend estático
-   app.use(express.static(path.join(__dirname, '../../frontend/admin-panel/dist')));
-   
-   // Fallback para SPA
-   app.get('*', (req, res) => {
-     res.sendFile(path.join(__dirname, '../../frontend/admin-panel/dist/index.html'));
-   });
-   ```
-
-2. **Build del frontend antes del deploy**:
+1. **Instalar Fly CLI:**
    ```bash
-   cd frontend/admin-panel
-   npm run build
+   curl -L https://fly.io/install.sh | sh
    ```
 
----
-
-## 🔍 Verificación Post-Deployment
-
-### Backend
-
-1. **Health Check**
+2. **Login:**
    ```bash
-   curl https://api.tu-dominio.com/health
+   fly auth login
    ```
-   Debe retornar: `{"status":"ok","timestamp":"..."}`
 
-2. **Verificar Bot de WhatsApp**
-   - Revisa los logs del servidor
-   - Deberías ver: "Bot ready for business..."
-   - Si aparece QR, escanéalo con WhatsApp
-
-3. **Probar API**
+3. **Crear app:**
    ```bash
-   curl https://api.tu-dominio.com/api/services
+   fly launch
    ```
 
-### Frontend
-
-1. **Acceder al panel**
-   - Abre `https://admin.tu-dominio.com`
-   - Deberías ver la página de login
-
-2. **Verificar conexión con backend**
-   - Abre las DevTools del navegador (F12)
-   - Ve a la pestaña Network
-   - Intenta hacer login
-   - Verifica que las requests vayan a la URL correcta del backend
-
-3. **Verificar variables de entorno**
-   - En la consola del navegador, verifica:
-   ```javascript
-   console.log(import.meta.env.VITE_API_URL);
+4. **Configurar variables:**
+   ```bash
+   fly secrets set DATABASE_URL=postgresql://...
+   fly secrets set JWT_SECRET=your-secret
+   # ... etc
    ```
-   Debe mostrar la URL de tu backend
 
----
+5. **Deploy:**
+   ```bash
+   fly deploy
+   ```
 
-## 🐛 Troubleshooting
+## 🐳 Deployment con Docker
 
-### Bot no se conecta
+### Build local:
+```bash
+docker build -t milo-bookings .
+```
 
-- Verifica que las sesiones se guarden correctamente
-- Revisa los logs para errores de autenticación
-- Considera usar WhatsApp Business API
+### Run:
+```bash
+docker run -p 3000:3000 \
+  -e DATABASE_URL=postgresql://... \
+  -e JWT_SECRET=your-secret \
+  -e MERCADOPAGO_ACCESS_TOKEN=... \
+  milo-bookings
+```
 
-### Base de datos no conecta
+## 📝 Notas Importantes
 
-- Verifica `DATABASE_URL` en variables de entorno
-- Asegúrate de que la base de datos esté activa
-- Revisa que las migraciones se ejecutaron
+### Base de Datos
+- **Desarrollo:** SQLite (local)
+- **Producción:** PostgreSQL (recomendado)
+- Las migraciones se ejecutan automáticamente al iniciar el contenedor
 
-### Sesiones se pierden
+### WhatsApp en la Nube
+- El bot necesita acceso a WhatsApp Web
+- En la primera ejecución, necesitarás escanear el QR code
+- Las sesiones se guardan en `/app/backend/data/whatsapp-sessions`
+- Considera usar volúmenes persistentes para mantener las sesiones
 
-- En Heroku, usa storage externo (S3)
-- En Railway/Render, verifica que el storage sea persistente
-- Considera implementar backup de sesiones
+### Webhooks de MercadoPago
+- Configura la URL del webhook en MercadoPago: `https://tu-dominio.com/api/payments/webhook`
+- Asegúrate de que tu dominio tenga SSL (HTTPS)
+- Railway y Render proporcionan HTTPS automáticamente
 
-### Frontend no se conecta al backend
+### Monitoreo
+- El endpoint `/health` está disponible para health checks
+- Railway y Render lo usan automáticamente
 
-- Verifica que `VITE_API_URL` esté configurada correctamente
-- Asegúrate de que la URL del backend sea accesible públicamente
-- Verifica CORS en el backend (debe incluir la URL del frontend)
-- Revisa la consola del navegador para errores de CORS
-- Verifica que el backend esté corriendo y accesible
+## 🔍 Troubleshooting
 
-### Errores de CORS
+### El bot no inicia
+- Verifica que `PUPPETEER_EXECUTABLE_PATH` esté configurado
+- Revisa los logs del contenedor
+- Asegúrate de que Chromium esté instalado (ya incluido en Dockerfile)
 
-- Asegúrate de que `ALLOWED_ORIGINS` en el backend incluya la URL del frontend
-- Verifica que ambas URLs usen HTTPS en producción
-- Revisa que no haya trailing slashes en las URLs
+### Error de base de datos
+- Verifica que `DATABASE_URL` esté correctamente configurada
+- Asegúrate de que la base de datos PostgreSQL esté accesible
+- Verifica que las migraciones se ejecutaron correctamente
 
----
+### Webhooks no funcionan
+- Verifica que `WEBHOOK_BASE_URL` apunte a tu dominio con HTTPS
+- Revisa los logs del endpoint `/api/payments/webhook`
+- Verifica que MercadoPago tenga la URL correcta configurada
 
-## 📚 Recursos Adicionales
+## 📚 Recursos
 
 - [Railway Docs](https://docs.railway.app)
 - [Render Docs](https://render.com/docs)
-- [Heroku Node.js Guide](https://devcenter.heroku.com/articles/getting-started-with-nodejs)
-- [WhatsApp Business API](https://developers.facebook.com/docs/whatsapp)
-
----
-
-## ✅ Checklist de Deployment
-
-### Backend
-- [ ] Base de datos PostgreSQL configurada
-- [ ] Variables de entorno configuradas
-- [ ] Migraciones ejecutadas
-- [ ] Health check responde correctamente
-- [ ] Bot de WhatsApp conectado
-- [ ] CORS configurado con URL del frontend
-- [ ] SSL/HTTPS habilitado
-- [ ] Logs monitoreados
-
-### Frontend
-- [ ] Frontend desplegado (Render/Vercel/Netlify)
-- [ ] Variable `VITE_API_URL` configurada con URL del backend
-- [ ] Build exitoso sin errores
-- [ ] Panel de administración accesible
-- [ ] Conexión con backend verificada
-- [ ] Login funciona correctamente
-- [ ] SSL/HTTPS habilitado
-
-### Integración
-- [ ] Backend y Frontend comunicándose correctamente
-- [ ] CORS permite requests del frontend
-- [ ] Variables de entorno sincronizadas
-
----
-
-**Última actualización**: Enero 2025
-
+- [Fly.io Docs](https://fly.io/docs)
+- [Docker Docs](https://docs.docker.com)
