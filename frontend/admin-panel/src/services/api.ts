@@ -21,12 +21,46 @@ const getApiBaseURL = () => {
   return fallbackURL;
 };
 
+const apiBaseURL = getApiBaseURL();
+console.log('[API] Base URL configured:', apiBaseURL);
+
 const api = axios.create({
-  baseURL: getApiBaseURL(),
+  baseURL: apiBaseURL,
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 30000, // 30 segundos timeout
 });
+
+// Interceptor para logging de requests
+api.interceptors.request.use(
+  (config) => {
+    console.log('[API] Request:', config.method?.toUpperCase(), config.url, config.baseURL);
+    return config;
+  },
+  (error) => {
+    console.error('[API] Request error:', error);
+    return Promise.reject(error);
+  }
+);
+
+// Interceptor para logging de responses
+api.interceptors.response.use(
+  (response) => {
+    console.log('[API] Response:', response.status, response.config.url);
+    return response;
+  },
+  (error) => {
+    console.error('[API] Response error:', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      url: error.config?.url,
+      baseURL: error.config?.baseURL,
+      message: error.message,
+    });
+    return Promise.reject(error);
+  }
+);
 
 // Interceptor para agregar token a las requests
 api.interceptors.request.use((config) => {
