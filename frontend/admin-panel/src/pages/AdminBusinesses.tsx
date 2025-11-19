@@ -252,7 +252,11 @@ export function AdminBusinesses() {
               <div style={{ display: 'flex', gap: '0.5rem', flexDirection: 'column' }}>
                 <button
                   onClick={() => {
-                    window.open(`/?business=${business.id}`, '_blank');
+                    // Abrir panel del negocio en nueva pestaña
+                    // Necesita login como business user, por ahora solo muestra info
+                    const businessInfo = `Business ID: ${business.id}\nTeléfono: ${business.owner_phone || business.phone}\nContraseña temporal: changeme123`;
+                    alert(`Para acceder al panel de este negocio:\n\n${businessInfo}\n\nNota: Debes hacer login con estas credenciales en una nueva pestaña.`);
+                    // TODO: Implementar login automático o generar link con token temporal
                   }}
                   style={{
                     padding: '0.5rem 1rem',

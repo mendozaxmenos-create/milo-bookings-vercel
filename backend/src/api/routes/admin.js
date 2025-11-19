@@ -334,13 +334,31 @@ router.post('/businesses/:id/reconnect-bot', async (req, res) => {
     
     // Reinicializar bot
     try {
-      const bot = new BookingBot(business.id, business.whatsapp_number);
-      await bot.initialize();
-      activeBots.set(business.id, bot);
+      // Desconectar bot existente si hay uno
+      const existingBot = activeBots.get(req.params.id);
+      if (existingBot) {
+        try {
+          await existingBot.disconnect();
+        } catch (disconnectErr) {
+          console.warn('Error desconectando bot existente:', disconnectErr);
+        }
+        activeBots.delete(req.params.id);
+      }
       
+      // Crear nuevo bot e inicializar
+      const bot = new BookingBot(business.id, business.whatsapp_number);
+      // Inicializar en segundo plano para no bloquear la respuesta
+      bot.initialize().then(() => {
+        activeBots.set(business.id, bot);
+        console.log(`✅ Bot reconectado para negocio: ${business.name} (${business.id})`);
+      }).catch(err => {
+        console.error(`Error inicializando bot después de reconectar:`, err);
+      });
+      
+      // Responder inmediatamente
       res.json({
         message: 'Bot reconectado exitosamente',
-        note: 'Si el bot necesita autenticación, se generará un nuevo QR code.',
+        note: 'El bot se está inicializando. Si necesita autenticación, se generará un nuevo QR code en unos segundos. Haz clic en "Refrescar" en el modal de QR.',
       });
     } catch (err) {
       console.error('Error reconectando bot:', err);
