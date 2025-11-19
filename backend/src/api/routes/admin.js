@@ -22,7 +22,13 @@ router.get('/businesses', async (req, res) => {
   try {
     console.log('[Admin] Listando todos los negocios (incluyendo inactivos)');
     const businesses = await Business.list(1000, 0, true); // Incluir inactivos para super admin
-    console.log(`[Admin] Encontrados ${businesses.length} negocios`);
+    console.log(`[Admin] Encontrados ${businesses.length} negocios en la base de datos`);
+    
+    if (businesses.length === 0) {
+      console.warn('[Admin] ⚠️ No se encontraron negocios en la base de datos');
+    } else {
+      console.log('[Admin] Negocios encontrados:', businesses.map(b => ({ id: b.id, name: b.name, is_active: b.is_active })));
+    }
     
     // Agregar información de estado del bot para cada negocio
     const businessesWithStatus = await Promise.all(
@@ -56,10 +62,12 @@ router.get('/businesses', async (req, res) => {
       })
     );
     
+    console.log(`[Admin] ✅ Retornando ${businessesWithStatus.length} negocios con estado de bot`);
     res.json({ data: businessesWithStatus });
   } catch (error) {
-    console.error('Error listing businesses:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('[Admin] ❌ Error listing businesses:', error);
+    console.error('[Admin] Error stack:', error.stack);
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
 
