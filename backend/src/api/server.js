@@ -189,8 +189,19 @@ app.use('/api/admin', adminRoutes);
 
 // Error handling
 app.use((err, req, res, next) => {
-  console.error('[Error Handler]', err);
-  res.status(500).json({ error: 'Something went wrong!' });
+  console.error('[Error Handler]', {
+    message: err.message,
+    stack: err.stack,
+    path: req.path,
+    method: req.method,
+  });
+  
+  // En producción, mostrar mensaje de error pero no el stack completo
+  const isProduction = process.env.NODE_ENV === 'production';
+  res.status(err.status || 500).json({ 
+    error: isProduction ? err.message || 'Something went wrong!' : err.message,
+    ...(isProduction ? {} : { stack: err.stack }),
+  });
 });
 
 // 404 handler (al final)

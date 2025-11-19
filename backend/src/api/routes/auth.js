@@ -7,7 +7,7 @@ import { validateLogin, validateRegister } from '../../utils/validators.js';
 const router = express.Router();
 
 // Login
-router.post('/login', async (req, res) => {
+router.post('/login', async (req, res, next) => {
   try {
     console.log('[Auth] Login attempt:', {
       hasEmail: !!req.body.email,
@@ -95,8 +95,13 @@ router.post('/login', async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('[Auth] Login error:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+    });
+    // Pasar el error al error handler de Express
+    next(error);
   }
 });
 
