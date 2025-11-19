@@ -81,10 +81,11 @@
   - Status: 200 OK
   - Devuelve array vacío (sin reservas aún)
 
-- ⚠️ **POST /api/bookings**: Requiere fix
+- ✅ **POST /api/bookings**: Funciona correctamente
   - **Problema encontrado**: Validador requería UUID para `service_id`, pero los servicios usan IDs como "service-001"
   - **Fix aplicado**: Cambiado validador para aceptar cualquier string
-  - **Estado**: Fix pusheado, esperando redeploy en Render
+  - **Estado**: ✅ Fix aplicado y funcionando
+  - **Prueba exitosa**: Reserva creada con ID `6da74c62-2d77-4d59-991b-ab1d4d293fe8`
 
 ### ✅ 4. Disponibilidad
 
@@ -139,7 +140,7 @@
 | Autenticación | ✅ | Funcional | Login business y super admin OK |
 | Servicios | ✅ | Funcional | Listar servicios OK |
 | Reservas (GET) | ✅ | Funcional | Listar reservas OK |
-| Reservas (POST) | ⚠️ | Fix aplicado | Esperando redeploy |
+| Reservas (POST) | ✅ | Funcional | Reserva creada exitosamente |
 | Disponibilidad | ✅ | Funcional | Endpoints responden correctamente |
 | Settings | ✅ | Funcional | Configuración y pagos OK |
 
