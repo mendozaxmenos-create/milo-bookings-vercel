@@ -100,16 +100,57 @@ Tienes una nueva reserva:
       .replace(/{estado}/g, statusLabel)
       .replace(/{detalles_pago}/g, paymentDetails);
 
-    // Formatear número de teléfono del dueño para WhatsApp
-    let ownerPhone = business.owner_phone.replace(/[\s\+]/g, '');
-    if (!ownerPhone.includes('@')) {
-      ownerPhone = `${ownerPhone}@c.us`;
+    // Obtener números de teléfono para notificaciones
+    let phonesToNotify = [];
+    
+    // Si hay números configurados en settings
+    if (settings.notification_phones) {
+      try {
+        const notificationPhones = typeof settings.notification_phones === 'string' 
+          ? JSON.parse(settings.notification_phones) 
+          : settings.notification_phones;
+        
+        if (Array.isArray(notificationPhones) && notificationPhones.length > 0) {
+          // Si hay un número por defecto configurado, usar solo ese
+          if (settings.default_notification_phone) {
+            const defaultPhone = notificationPhones.find(p => p.phone === settings.default_notification_phone);
+            if (defaultPhone) {
+              phonesToNotify = [defaultPhone];
+            } else {
+              // Si el número por defecto no está en la lista, usar todos
+              phonesToNotify = notificationPhones;
+            }
+          } else {
+            // Si no hay número por defecto, enviar a todos
+            phonesToNotify = notificationPhones;
+          }
+        }
+      } catch (error) {
+        console.error('[OwnerNotification] Error parseando notification_phones:', error);
+      }
+    }
+    
+    // Si no hay números configurados, usar el owner_phone por defecto
+    if (phonesToNotify.length === 0) {
+      phonesToNotify = [{ phone: business.owner_phone, label: 'Dueño' }];
     }
 
-    // Enviar mensaje al dueño
-    await bot.sendMessage(ownerPhone, notificationMessage);
+    // Enviar mensaje a cada número configurado
+    const sendPromises = phonesToNotify.map(async (phoneConfig) => {
+      try {
+        let phoneNumber = phoneConfig.phone.replace(/[\s\+]/g, '');
+        if (!phoneNumber.includes('@')) {
+          phoneNumber = `${phoneNumber}@c.us`;
+        }
+        
+        await bot.sendMessage(phoneNumber, notificationMessage);
+        console.log(`[OwnerNotification] ✅ Notificación enviada a ${phoneConfig.label || phoneConfig.phone} (${phoneConfig.phone}) para reserva ${bookingWithService.id}`);
+      } catch (error) {
+        console.error(`[OwnerNotification] Error enviando a ${phoneConfig.phone}:`, error);
+      }
+    });
 
-    console.log(`[OwnerNotification] ✅ Notificación enviada al dueño ${business.owner_phone} para reserva ${bookingWithService.id}`);
+    await Promise.all(sendPromises);
   } catch (error) {
     console.error(`[OwnerNotification] Error enviando notificación al dueño para reserva ${booking.id}:`, error);
     // No lanzar error para no interrumpir el flujo de creación de reserva

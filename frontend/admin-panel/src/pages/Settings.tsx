@@ -22,6 +22,8 @@ interface BusinessSettings {
   reminder_hours_before?: number;
   owner_notifications_enabled?: boolean;
   owner_notification_message?: string;
+  notification_phones?: Array<{ phone: string; label: string }> | string | null;
+  default_notification_phone?: string | null;
 }
 
 const DEFAULT_SETTINGS: BusinessSettings = {
@@ -94,6 +96,9 @@ export function Settings() {
   const [reminderHoursBefore, setReminderHoursBefore] = useState(24);
   const [ownerNotificationsEnabled, setOwnerNotificationsEnabled] = useState(true);
   const [ownerNotificationMessage, setOwnerNotificationMessage] = useState('');
+  const [notificationPhones, setNotificationPhones] = useState<Array<{ phone: string; label: string }>>([]);
+  const [defaultNotificationPhone, setDefaultNotificationPhone] = useState<string | null>(null);
+  const [newPhoneForm, setNewPhoneForm] = useState({ phone: '', label: '' });
 
   const { data: insuranceData, isLoading: insuranceLoading } = useQuery({
     queryKey: ['insurance-providers'],
@@ -119,6 +124,22 @@ export function Settings() {
       setReminderHoursBefore(data.data.reminder_hours_before || 24);
       setOwnerNotificationsEnabled(data.data.owner_notifications_enabled !== undefined ? data.data.owner_notifications_enabled : true);
       setOwnerNotificationMessage(data.data.owner_notification_message || '');
+      
+      // Cargar números de notificación
+      if (data.data.notification_phones) {
+        try {
+          const phones = typeof data.data.notification_phones === 'string' 
+            ? JSON.parse(data.data.notification_phones) 
+            : data.data.notification_phones;
+          setNotificationPhones(Array.isArray(phones) ? phones : []);
+        } catch (error) {
+          console.error('Error parseando notification_phones:', error);
+          setNotificationPhones([]);
+        }
+      } else {
+        setNotificationPhones([]);
+      }
+      setDefaultNotificationPhone(data.data.default_notification_phone || null);
     }
   }, [data]);
 
@@ -222,6 +243,8 @@ export function Settings() {
       reminder_hours_before: reminderHoursBefore,
       owner_notifications_enabled: ownerNotificationsEnabled,
       owner_notification_message: ownerNotificationMessage || null,
+      notification_phones: notificationPhones.length > 0 ? notificationPhones : null,
+      default_notification_phone: defaultNotificationPhone || null,
     });
   };
 
@@ -422,9 +445,148 @@ Tienes una nueva reserva:
                   </small>
                 </div>
               )}
+
+              {ownerNotificationsEnabled && (
+                <div style={{ marginLeft: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
+                  <div>
+                    <label style={{ fontWeight: 500, display: 'block', marginBottom: '0.5rem' }}>
+                      Números de teléfono para notificaciones:
+                    </label>
+                    
+                    {notificationPhones.length > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+                        {notificationPhones.map((phoneConfig, index) => (
+                          <div
+                            key={index}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '1rem',
+                              padding: '0.75rem',
+                              backgroundColor: 'white',
+                              borderRadius: '4px',
+                              border: '1px solid #dee2e6',
+                            }}
+                          >
+                            <input
+                              type="radio"
+                              name="default_notification_phone"
+                              checked={defaultNotificationPhone === phoneConfig.phone}
+                              onChange={() => setDefaultNotificationPhone(phoneConfig.phone)}
+                              style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                            />
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontWeight: 500 }}>{phoneConfig.label || 'Sin etiqueta'}</div>
+                              <div style={{ fontSize: '0.875rem', color: '#666' }}>{phoneConfig.phone}</div>
+                            </div>
+                            {defaultNotificationPhone === phoneConfig.phone && (
+                              <span style={{ fontSize: '0.75rem', color: '#28a745', fontWeight: 500 }}>
+                                Por defecto
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newPhones = notificationPhones.filter((_, i) => i !== index);
+                                setNotificationPhones(newPhones);
+                                if (defaultNotificationPhone === phoneConfig.phone) {
+                                  setDefaultNotificationPhone(newPhones.length > 0 ? newPhones[0].phone : null);
+                                }
+                              }}
+                              style={{
+                                padding: '0.25rem 0.5rem',
+                                backgroundColor: '#dc3545',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                fontSize: '0.875rem',
+                              }}
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '4px', marginBottom: '1rem', color: '#6c757d' }}>
+                        No hay números configurados. Se usará el número del dueño por defecto.
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                      <input
+                        type="text"
+                        placeholder="Etiqueta (ej: Dueño, Gerente)"
+                        value={newPhoneForm.label}
+                        onChange={(e) => setNewPhoneForm({ ...newPhoneForm, label: e.target.value })}
+                        style={{
+                          flex: 1,
+                          padding: '0.5rem',
+                          borderRadius: '4px',
+                          border: '1px solid #dee2e6',
+                        }}
+                      />
+                      <input
+                        type="text"
+                        placeholder="Número (ej: +5491123456789)"
+                        value={newPhoneForm.phone}
+                        onChange={(e) => setNewPhoneForm({ ...newPhoneForm, phone: e.target.value })}
+                        style={{
+                          flex: 1,
+                          padding: '0.5rem',
+                          borderRadius: '4px',
+                          border: '1px solid #dee2e6',
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (newPhoneForm.phone && newPhoneForm.label) {
+                            const newPhones = [...notificationPhones, { phone: newPhoneForm.phone, label: newPhoneForm.label }];
+                            setNotificationPhones(newPhones);
+                            if (!defaultNotificationPhone) {
+                              setDefaultNotificationPhone(newPhoneForm.phone);
+                            }
+                            setNewPhoneForm({ phone: '', label: '' });
+                          }
+                        }}
+                        disabled={!newPhoneForm.phone || !newPhoneForm.label}
+                        style={{
+                          padding: '0.5rem 1rem',
+                          backgroundColor: newPhoneForm.phone && newPhoneForm.label ? '#28a745' : '#6c757d',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: newPhoneForm.phone && newPhoneForm.label ? 'pointer' : 'not-allowed',
+                        }}
+                      >
+                        Agregar
+                      </button>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+                      <input
+                        type="radio"
+                        name="default_notification_phone"
+                        checked={defaultNotificationPhone === null}
+                        onChange={() => setDefaultNotificationPhone(null)}
+                        style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                      />
+                      <label style={{ cursor: 'pointer', fontSize: '0.875rem' }}>
+                        Enviar a todos los números configurados
+                      </label>
+                    </div>
+
+                    <small style={{ color: '#6c757d', display: 'block', marginTop: '0.5rem' }}>
+                      Puedes configurar múltiples números. Si seleccionas uno como "por defecto", solo ese recibirá notificaciones. Si no seleccionas ninguno, se enviará a todos.
+                    </small>
+                  </div>
+                </div>
+              )}
               
               <small style={{ color: '#6c757d', marginLeft: '2rem' }}>
-                Recibirás una notificación por WhatsApp en tu número de dueño cuando alguien haga una reserva.
+                Recibirás una notificación por WhatsApp cuando alguien haga una reserva.
               </small>
             </div>
           </div>

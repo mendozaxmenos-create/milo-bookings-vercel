@@ -15,6 +15,8 @@ export class BusinessSettings {
       reminder_hours_before: data.reminder_hours_before !== undefined ? data.reminder_hours_before : 24,
       owner_notifications_enabled: data.owner_notifications_enabled !== undefined ? data.owner_notifications_enabled : true,
       owner_notification_message: data.owner_notification_message || null,
+      notification_phones: data.notification_phones ? (typeof data.notification_phones === 'string' ? data.notification_phones : JSON.stringify(data.notification_phones)) : null,
+      default_notification_phone: data.default_notification_phone || null,
       updated_at: new Date().toISOString(),
     };
 
