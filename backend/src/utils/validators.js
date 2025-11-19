@@ -93,10 +93,21 @@ export const validatePaymentConfig = (data) => {
 };
 
 export const validatePasswordResetRequest = (data) => {
+  // Para business users: business_id + phone
+  // Para system users (super admin): email
   const schema = Joi.object({
-    business_id: Joi.string().required(),
-    phone: Joi.string().pattern(/^\+?[1-9]\d{1,14}$/).required(),
-  });
+    email: Joi.string().email().optional(),
+    business_id: Joi.string().when('email', {
+      is: Joi.exist(),
+      then: Joi.optional(),
+      otherwise: Joi.required(),
+    }),
+    phone: Joi.string().pattern(/^\+?[1-9]\d{1,14}$/).when('email', {
+      is: Joi.exist(),
+      then: Joi.optional(),
+      otherwise: Joi.required(),
+    }),
+  }).or('email', 'business_id');
 
   return schema.validate(data);
 };

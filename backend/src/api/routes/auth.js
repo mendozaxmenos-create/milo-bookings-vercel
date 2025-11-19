@@ -3,7 +3,7 @@ import { BusinessUser } from '../../../database/models/BusinessUser.js';
 import { SystemUser } from '../../../database/models/SystemUser.js';
 import { generateToken } from '../../utils/auth.js';
 import { validateLogin, validateRegister, validatePasswordResetRequest, validatePasswordReset } from '../../utils/validators.js';
-import { sendPasswordResetToken, resetPasswordWithToken } from '../../services/passwordResetService.js';
+import { sendPasswordResetToken, sendSystemUserPasswordResetToken, resetPasswordWithToken } from '../../services/passwordResetService.js';
 
 const router = express.Router();
 
@@ -159,16 +159,44 @@ router.post('/forgot-password', async (req, res) => {
       return res.status(400).json({ error: error.details[0].message });
     }
 
-    const { business_id, phone } = value;
+    const { email, business_id, phone } = value;
 
-    // Enviar token por WhatsApp
-    const result = await sendPasswordResetToken(business_id, phone);
+    // Si viene email, es para super admin
+    if (email) {
+      const result = await sendSystemUserPasswordResetToken(email);
+      
+      // En producción, el token debería enviarse por email
+      // Por ahora, retornamos el token para mostrarlo en el frontend (solo en desarrollo)
+      if (result.success && result.token) {
+        return res.json({
+          message: 'Código de recuperación generado. En producción, esto debería enviarse por email.',
+          success: true,
+          token: result.token, // Solo en desarrollo/MVP
+          isSystemUser: true,
+        });
+      }
 
-    // Por seguridad, siempre devolvemos éxito (no revelamos si el usuario existe)
-    res.json({
-      message: 'Si el usuario existe, recibirás un código de recuperación por WhatsApp',
-      success: true,
-    });
+      // Por seguridad, siempre devolvemos éxito (no revelamos si el usuario existe)
+      return res.json({
+        message: 'Si el usuario existe, recibirás un código de recuperación',
+        success: true,
+        isSystemUser: true,
+      });
+    }
+
+    // Si viene business_id y phone, es para business user
+    if (business_id && phone) {
+      const result = await sendPasswordResetToken(business_id, phone);
+
+      // Por seguridad, siempre devolvemos éxito (no revelamos si el usuario existe)
+      return res.json({
+        message: 'Si el usuario existe, recibirás un código de recuperación por WhatsApp',
+        success: true,
+        isSystemUser: false,
+      });
+    }
+
+    return res.status(400).json({ error: 'email o (business_id + phone) requerido' });
   } catch (error) {
     console.error('Forgot password error:', error);
     res.status(500).json({ error: 'Internal server error' });

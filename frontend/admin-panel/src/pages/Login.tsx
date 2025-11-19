@@ -80,9 +80,26 @@ export function Login() {
     setForgotPasswordLoading(true);
 
     try {
-      await forgotPassword({ business_id: businessId, phone });
-      setSuccessMessage('Si el usuario existe, recibirás un código de recuperación por WhatsApp. Revisa tu teléfono.');
-      setShowForgotPassword(false);
+      const requestData = isSuperAdmin 
+        ? { email } 
+        : { business_id: businessId, phone };
+
+      const response = await forgotPassword(requestData);
+      
+      // Si es super admin y viene token en la respuesta, mostrarlo
+      if (isSuperAdmin && response.token) {
+        setSuccessMessage(`Tu código de recuperación es: ${response.token}\n\n⚠️ En producción, esto debería enviarse por email.`);
+        setResetTokenInput(response.token);
+        setShowForgotPassword(false);
+        // Mostrar formulario de reset automáticamente
+        navigate(`/login?token=${response.token}`);
+      } else if (isSuperAdmin) {
+        setSuccessMessage('Si el usuario existe, recibirás un código de recuperación por email.');
+        setShowForgotPassword(false);
+      } else {
+        setSuccessMessage('Si el usuario existe, recibirás un código de recuperación por WhatsApp. Revisa tu teléfono.');
+        setShowForgotPassword(false);
+      }
     } catch (err: any) {
       console.error('Forgot password error:', err);
       setError(err?.response?.data?.error || 'Error al solicitar recuperación de contraseña');
@@ -112,14 +129,25 @@ export function Login() {
       await resetPassword({ token: resetTokenInput, password: newPassword });
       setSuccessMessage('Contraseña restablecida exitosamente. Redirigiendo al login...');
       setTimeout(() => {
-        navigate('/login');
-      }, 2000);
+              navigate('/login');
+            }, 2000);
     } catch (err: any) {
       console.error('Reset password error:', err);
       setError(err?.response?.data?.error || 'Error al restablecer contraseña. El token puede ser inválido o haber expirado.');
     } finally {
       setResetPasswordLoading(false);
     }
+  };
+
+  // Función para cambiar entre super admin y business user
+  const handleToggleUserType = () => {
+    setIsSuperAdmin(!isSuperAdmin);
+    setEmail('');
+    setBusinessId('');
+    setPhone('');
+    setPassword('');
+    setError('');
+    setSuccessMessage('');
   };
 
   // Si hay token en la URL, mostrar formulario de reset
@@ -286,47 +314,90 @@ export function Login() {
           <h1 style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
             🔐 Recuperar Contraseña
           </h1>
+          
+          <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
+            <button
+              type="button"
+              onClick={handleToggleUserType}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: isSuperAdmin ? '#28a745' : '#6c757d',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              {isSuperAdmin ? '👤 Super Admin' : '🏢 Negocio'}
+            </button>
+          </div>
+          
           <p style={{ marginBottom: '1.5rem', color: '#666', textAlign: 'center' }}>
-            Ingresa tu Business ID y teléfono. Te enviaremos un código de recuperación por WhatsApp.
+            {isSuperAdmin 
+              ? 'Ingresa tu email. Recibirás un código de recuperación (en producción, esto debería enviarse por email).'
+              : 'Ingresa tu Business ID y teléfono. Te enviaremos un código de recuperación por WhatsApp.'}
           </p>
           
           <form onSubmit={handleForgotPassword}>
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem' }}>
-                Business ID
-              </label>
-              <input
-                type="text"
-                value={businessId}
-                onChange={(e) => setBusinessId(e.target.value)}
-                required
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px'
-                }}
-              />
-            </div>
+            {isSuperAdmin ? (
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem' }}>
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  placeholder="admin@milobookings.com"
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px'
+                  }}
+                />
+              </div>
+            ) : (
+              <>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem' }}>
+                    Business ID
+                  </label>
+                  <input
+                    type="text"
+                    value={businessId}
+                    onChange={(e) => setBusinessId(e.target.value)}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px'
+                    }}
+                  />
+                </div>
 
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem' }}>
-                Teléfono
-              </label>
-              <input
-                type="text"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                required
-                placeholder="+5491123456789"
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px'
-                }}
-              />
-            </div>
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem' }}>
+                    Teléfono
+                  </label>
+                  <input
+                    type="text"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    required
+                    placeholder="+5491123456789"
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px'
+                    }}
+                  />
+                </div>
+              </>
+            )}
 
             {error && (
               <div style={{
@@ -538,24 +609,22 @@ export function Login() {
             {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
           </button>
 
-          {!isSuperAdmin && (
-            <button
-              type="button"
-              onClick={() => setShowForgotPassword(true)}
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                backgroundColor: 'transparent',
-                color: '#6c757d',
-                border: 'none',
-                cursor: 'pointer',
-                textDecoration: 'underline',
-                fontSize: '0.875rem'
-              }}
-            >
-              ¿Olvidaste tu contraseña?
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => setShowForgotPassword(true)}
+            style={{
+              width: '100%',
+              padding: '0.5rem',
+              backgroundColor: 'transparent',
+              color: '#6c757d',
+              border: 'none',
+              cursor: 'pointer',
+              textDecoration: 'underline',
+              fontSize: '0.875rem'
+            }}
+          >
+            ¿Olvidaste tu contraseña?
+          </button>
         </form>
       </div>
     </div>

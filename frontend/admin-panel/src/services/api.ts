@@ -109,13 +109,16 @@ export const register = async (data: LoginRequest & { role?: string }): Promise<
 };
 
 export interface ForgotPasswordRequest {
-  business_id: string;
-  phone: string;
+  email?: string; // Para super admin
+  business_id?: string; // Para business user
+  phone?: string; // Para business user
 }
 
 export interface ForgotPasswordResponse {
   message: string;
   success: boolean;
+  token?: string; // Token para super admin (MVP - debería enviarse por email)
+  isSystemUser?: boolean;
 }
 
 export interface ResetPasswordRequest {

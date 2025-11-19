@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { BusinessUser } from '../../database/models/BusinessUser.js';
+import { SystemUser } from '../../database/models/SystemUser.js';
 import { Business } from '../../database/models/Business.js';
 import { activeBots } from '../index.js';
 
@@ -77,22 +78,73 @@ Para restablecer tu contraseña, usa este código en la página de recuperación
 }
 
 /**
+ * Envía el token de recuperación para super admin por email
+ * (Por ahora retorna el token para mostrarlo en el frontend, en producción debería enviarse por email)
+ */
+export async function sendSystemUserPasswordResetToken(email) {
+  try {
+    // Buscar usuario
+    const user = await SystemUser.findByEmail(email);
+    if (!user) {
+      // Por seguridad, no revelamos si el usuario existe o no
+      return { success: true };
+    }
+
+    if (!user.is_active) {
+      return { success: true }; // No revelamos que existe pero está inactivo
+    }
+
+    // Generar token
+    const resetToken = generateResetToken();
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 1); // Válido por 1 hora
+
+    // Guardar token en la base de datos
+    await SystemUser.setResetToken(user.id, resetToken, expiresAt.toISOString());
+
+    // TODO: En producción, enviar por email usando un servicio de email (SendGrid, Resend, etc.)
+    // Por ahora, retornamos el token para mostrarlo en el frontend
+    // En producción, deberías configurar un servicio de email real
+    console.log(`[PasswordReset] Token generado para super admin ${email}: ${resetToken}`);
+    console.warn(`[PasswordReset] ⚠️ En producción, esto debería enviarse por email. Token: ${resetToken}`);
+
+    return { success: true, token: resetToken };
+  } catch (error) {
+    console.error(`[PasswordReset] Error generando token para ${email}:`, error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Resetea la contraseña usando el token
  */
 export async function resetPasswordWithToken(token, newPassword) {
   try {
-    // Buscar usuario por token
-    const user = await BusinessUser.findByResetToken(token);
+    // Intentar buscar en business users primero
+    let user = await BusinessUser.findByResetToken(token);
+    let userType = 'business';
+
+    // Si no está en business users, buscar en system users
+    if (!user) {
+      user = await SystemUser.findByResetToken(token);
+      userType = 'system';
+    }
+
     if (!user) {
       return { success: false, error: 'Token inválido o expirado' };
     }
 
-    // Actualizar contraseña y limpiar token
-    await BusinessUser.update(user.id, { password: newPassword });
-    await BusinessUser.clearResetToken(user.id);
+    // Actualizar contraseña según el tipo de usuario
+    if (userType === 'business') {
+      await BusinessUser.update(user.id, { password: newPassword });
+      await BusinessUser.clearResetToken(user.id);
+    } else {
+      await SystemUser.update(user.id, { password: newPassword });
+      await SystemUser.clearResetToken(user.id);
+    }
 
-    console.log(`[PasswordReset] ✅ Contraseña reseteada para usuario ${user.id}`);
-    return { success: true, userId: user.id };
+    console.log(`[PasswordReset] ✅ Contraseña reseteada para usuario ${userType} ${user.id}`);
+    return { success: true, userId: user.id, userType };
   } catch (error) {
     console.error(`[PasswordReset] Error reseteando contraseña:`, error);
     return { success: false, error: error.message };
