@@ -316,3 +316,90 @@ export const toggleInsuranceProvider = async (id: string): Promise<InsuranceProv
   return response.data;
 };
 
+// Service API
+export interface Service {
+  id: string;
+  business_id: string;
+  name: string;
+  description?: string;
+  duration_minutes: number;
+  price: number;
+  display_order: number;
+  is_active: boolean;
+  requires_payment: boolean;
+  has_multiple_resources?: boolean;
+  resource_count?: number | null;
+}
+
+export interface ServiceListResponse {
+  data: Service[];
+}
+
+export interface ServiceResponse {
+  data: Service;
+}
+
+export const getServices = async (): Promise<ServiceListResponse> => {
+  const response = await api.get<ServiceListResponse>('/api/services');
+  return response.data;
+};
+
+export const getService = async (id: string): Promise<ServiceResponse> => {
+  const response = await api.get<ServiceResponse>(`/api/services/${id}`);
+  return response.data;
+};
+
+export const createService = async (data: Partial<Service>): Promise<ServiceResponse> => {
+  const response = await api.post<ServiceResponse>('/api/services', data);
+  return response.data;
+};
+
+export const updateService = async (id: string, data: Partial<Service>): Promise<ServiceResponse> => {
+  const response = await api.put<ServiceResponse>(`/api/services/${id}`, data);
+  return response.data;
+};
+
+export const deleteService = async (id: string): Promise<void> => {
+  await api.delete(`/api/services/${id}`);
+};
+
+export const toggleServiceActive = async (id: string): Promise<ServiceResponse> => {
+  const response = await api.patch<ServiceResponse>(`/api/services/${id}/toggle`);
+  return response.data;
+};
+
+// Service Resources API
+export interface ServiceResource {
+  id: string;
+  service_id: string;
+  name: string;
+  display_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export const getServiceResources = async (serviceId: string): Promise<{ data: ServiceResource[] }> => {
+  const response = await api.get<{ data: ServiceResource[] }>(`/api/service-resources/service/${serviceId}`);
+  return response.data;
+};
+
+export const createServiceResource = async (data: { service_id: string; name: string; display_order?: number }): Promise<{ data: ServiceResource }> => {
+  const response = await api.post<{ data: ServiceResource }>('/api/service-resources', data);
+  return response.data;
+};
+
+export const updateServiceResource = async (id: string, data: { name?: string; display_order?: number }): Promise<{ data: ServiceResource }> => {
+  const response = await api.put<{ data: ServiceResource }>(`/api/service-resources/${id}`, data);
+  return response.data;
+};
+
+export const deleteServiceResource = async (id: string): Promise<void> => {
+  await api.delete(`/api/service-resources/${id}`);
+};
+
+export const toggleServiceResourceActive = async (id: string): Promise<{ data: ServiceResource }> => {
+  const response = await api.patch<{ data: ServiceResource }>(`/api/service-resources/${id}/toggle`);
+  return response.data;
+};
+
