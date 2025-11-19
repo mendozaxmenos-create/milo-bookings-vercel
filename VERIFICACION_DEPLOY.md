@@ -9,6 +9,13 @@ Response: {"status":"ok","timestamp":"2025-11-18T22:10:11.486Z"}
 
 ✅ **Servidor corriendo correctamente**
 
+## 🧪 Verificación 2025-11-19
+
+- ✅ `GET /health` sigue respondiendo correctamente (timestamp 2025-11-19 15:26Z).
+- ❌ `POST /api/auth/login` (business y super admin) responde `500` con `{"error":"Something went wrong!"}`.
+- 🔍 Acción sugerida: abrir Shell en Render y ejecutar `cd backend && npm run db:seed` para re-crear credenciales demo, luego revisar logs del deploy para capturar el stacktrace exacto.
+- 🌐 Frontend actual: `https://milo-bookings-admin-panel-f3hacagnc-milo-bookings-projects.vercel.app/` devuelve `401` (probable protección de preview) por lo que no se pudo validar login desde el panel todavía.
+
 ## 🔍 Próximos Pasos de Verificación
 
 ### 1. Verificar Logs en Render
