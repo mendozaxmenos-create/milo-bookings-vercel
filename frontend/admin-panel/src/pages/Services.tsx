@@ -26,12 +26,14 @@ export function Services() {
     requires_payment: true,
   });
 
-  const { data: services, isLoading } = useQuery<{ data: Service[] }>({
+  const { data: services, isLoading, error } = useQuery<{ data: Service[] }>({
     queryKey: ['services'],
     queryFn: async () => {
       const response = await api.get('/api/services');
       return response.data;
     },
+    retry: 2,
+    retryDelay: 1000,
   });
 
   const createMutation = useMutation({
@@ -290,7 +292,7 @@ export function Services() {
                 </td>
                 <td style={{ padding: '1rem' }}>{service.duration_minutes} min</td>
                 <td style={{ padding: '1rem' }}>
-                  ${service.price.toFixed(2)}
+                  ${Number(service.price).toFixed(2)}
                   {service.requires_payment === false && (
                     <div style={{ fontSize: '0.75rem', color: '#6c757d', marginTop: '0.25rem' }}>
                       Sin pago

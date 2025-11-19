@@ -625,7 +625,7 @@ export function Settings() {
                     {insuranceProviders.map((provider) => (
                       <tr key={provider.id} style={{ borderBottom: '1px solid #dee2e6' }}>
                         <td style={{ padding: '0.75rem' }}>{provider.name}</td>
-                        <td style={{ padding: '0.75rem' }}>${provider.copay_amount.toFixed(2)}</td>
+                        <td style={{ padding: '0.75rem' }}>${Number(provider.copay_amount || 0).toFixed(2)}</td>
                         <td style={{ padding: '0.75rem' }}>
                           <span style={{
                             padding: '0.25rem 0.5rem',

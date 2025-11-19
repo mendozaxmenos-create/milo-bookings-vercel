@@ -165,7 +165,7 @@ export function Bookings() {
                     {new Date(booking.booking_date).toLocaleDateString('es-ES')}
                   </td>
                   <td style={{ padding: '1rem' }}>{booking.booking_time}</td>
-                  <td style={{ padding: '1rem' }}>${booking.amount.toFixed(2)}</td>
+                  <td style={{ padding: '1rem' }}>${Number(booking.amount || 0).toFixed(2)}</td>
                   <td style={{ padding: '1rem' }}>
                     <span style={{
                       padding: '0.25rem 0.5rem',
