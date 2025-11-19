@@ -232,8 +232,8 @@ router.post('/forgot-password', passwordResetLimiter, async (req, res) => {
   }
 });
 
-// Resetear contraseña con token
-router.post('/reset-password', async (req, res) => {
+// Resetear contraseña con token (con rate limiting estricto)
+router.post('/reset-password', passwordResetLimiter, async (req, res) => {
   try {
     const { error, value } = validatePasswordReset(req.body);
     if (error) {
