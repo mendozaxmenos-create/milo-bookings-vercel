@@ -74,10 +74,111 @@ app.use((req, res, next) => {
 
 // RUTAS ESPECIALES PRIMERO (sin rate limiting)
 
-// Health check
-app.get('/health', (req, res) => {
-  console.log('[Health] GET /health');
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+// Health check mejorado
+app.get('/health', async (req, res) => {
+  try {
+    const health = {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || 'development',
+      version: '1.0.0',
+    };
+
+    // Verificar conexión a base de datos
+    try {
+      const db = (await import('../../database/index.js')).default;
+      await db.raw('SELECT 1');
+      health.database = { status: 'connected' };
+    } catch (dbError) {
+      health.database = { status: 'error', error: dbError.message };
+      health.status = 'degraded';
+    }
+
+    // Verificar variables de entorno críticas
+    health.config = {
+      hasDatabaseUrl: !!process.env.DATABASE_URL,
+      hasJwtSecret: !!process.env.JWT_SECRET,
+      nodeVersion: process.version,
+    };
+
+    const statusCode = health.status === 'ok' ? 200 : 503;
+    res.status(statusCode).json(health);
+  } catch (error) {
+    apiLogger.error('Health check failed', { error: error.message, stack: error.stack });
+    res.status(503).json({
+      status: 'error',
+      timestamp: new Date().toISOString(),
+      error: error.message,
+    });
+  }
+});
+
+// Health check detallado (solo en desarrollo o para super admin)
+app.get('/health/detailed', async (req, res) => {
+  try {
+    const health = {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || 'development',
+      version: '1.0.0',
+      memory: process.memoryUsage(),
+      cpu: process.cpuUsage(),
+      pid: process.pid,
+    };
+
+    // Verificar conexión a base de datos con detalles
+    try {
+      const db = (await import('../../database/index.js')).default;
+      await db.raw('SELECT 1');
+      
+      // Contar registros en tablas principales
+      const businessesCount = await db('businesses').count('* as count').first();
+      const bookingsCount = await db('bookings').count('* as count').first();
+      const servicesCount = await db('services').count('* as count').first();
+
+      health.database = {
+        status: 'connected',
+        businesses: parseInt(businessesCount?.count || 0),
+        bookings: parseInt(bookingsCount?.count || 0),
+        services: parseInt(servicesCount?.count || 0),
+      };
+    } catch (dbError) {
+      health.database = { status: 'error', error: dbError.message };
+      health.status = 'degraded';
+    }
+
+    // Información del sistema
+    health.system = {
+      platform: process.platform,
+      arch: process.arch,
+      nodeVersion: process.version,
+      hasDatabaseUrl: !!process.env.DATABASE_URL,
+      hasJwtSecret: !!process.env.JWT_SECRET,
+      hasMercadoPago: !!process.env.MERCADOPAGO_ACCESS_TOKEN,
+    };
+
+    // Verificar bots activos
+    try {
+      const { activeBots } = await import('../../index.js');
+      health.bots = {
+        activeCount: activeBots.size,
+      };
+    } catch (botError) {
+      health.bots = { status: 'error', error: botError.message };
+    }
+
+    const statusCode = health.status === 'ok' ? 200 : 503;
+    res.status(statusCode).json(health);
+  } catch (error) {
+    apiLogger.error('Detailed health check failed', { error: error.message, stack: error.stack });
+    res.status(503).json({
+      status: 'error',
+      timestamp: new Date().toISOString(),
+      error: error.message,
+    });
+  }
 });
 
 // Root route - DEBE ESTAR ANTES DE CUALQUIER OTRA COSA
@@ -89,6 +190,7 @@ app.get('/', (req, res) => {
     status: 'running',
     endpoints: {
       health: '/health',
+      healthDetailed: '/health/detailed',
       runSeeds: '/api/run-seeds (POST) - TEMPORAL',
       auth: '/api/auth',
       businesses: '/api/businesses',
