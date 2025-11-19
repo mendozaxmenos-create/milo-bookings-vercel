@@ -26,11 +26,9 @@ echo "✅ Script de seeds completado"
 # Permitir forzar la ejecución de seeds completos (npm run db:seed)
 if [ "$FORCE_DB_SEED" = "true" ]; then
   echo "🌱 FORCE_DB_SEED= true → ejecutando npm run db:seed..."
-  cd backend
   npm run db:seed || {
     echo "⚠️  Error al ejecutar npm run db:seed forzado"
   }
-  cd ..
   echo "✅ Seeds forzados completados (o se reportó el error arriba)"
 fi
 
