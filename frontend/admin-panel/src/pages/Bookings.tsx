@@ -436,6 +436,7 @@ export function Bookings() {
             <tr style={{ backgroundColor: '#f8f9fa', borderBottom: '2px solid #dee2e6' }}>
               <th style={{ padding: '1rem', textAlign: 'left' }}>Cliente</th>
               <th style={{ padding: '1rem', textAlign: 'left' }}>Servicio</th>
+              <th style={{ padding: '1rem', textAlign: 'left' }}>Recurso</th>
               <th style={{ padding: '1rem', textAlign: 'left' }}>Fecha</th>
               <th style={{ padding: '1rem', textAlign: 'left' }}>Hora</th>
               <th style={{ padding: '1rem', textAlign: 'left' }}>Monto</th>
@@ -557,7 +558,7 @@ export function Bookings() {
             }))
             : (
               <tr>
-                <td colSpan={8} style={{ padding: '2rem', textAlign: 'center', color: '#6c757d' }}>
+                <td colSpan={9} style={{ padding: '2rem', textAlign: 'center', color: '#6c757d' }}>
                   No hay reservas registradas.
                 </td>
               </tr>

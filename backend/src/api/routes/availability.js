@@ -161,7 +161,7 @@ router.delete('/slots/:id', async (req, res) => {
 // Obtener disponibilidad para una fecha
 router.get('/available-times', async (req, res) => {
   try {
-    const { date, service_duration = 30 } = req.query;
+    const { date, service_duration = 30, service_id } = req.query;
 
     if (!date) {
       return res.status(400).json({ error: 'date is required' });
@@ -170,7 +170,8 @@ router.get('/available-times', async (req, res) => {
     const availableTimes = await AvailabilityService.getAvailableTimes(
       req.user.business_id,
       date,
-      parseInt(service_duration)
+      parseInt(service_duration),
+      service_id || null // Pasar service_id para verificar recursos múltiples
     );
 
     res.json({ data: availableTimes });
