@@ -23,6 +23,7 @@ export class Booking {
       insurance_provider_id: data.insurance_provider_id || null,
       copay_amount: data.copay_amount || null,
       insurance_provider_name: data.insurance_provider_name || null,
+      reminder_sent: data.reminder_sent || false,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -158,6 +159,28 @@ export class Booking {
       )
       .where({ 'bookings.business_id': businessId })
       .whereBetween('bookings.booking_date', [startDate, endDate])
+      .orderBy('bookings.booking_date', 'asc')
+      .orderBy('bookings.booking_time', 'asc');
+  }
+
+  /**
+   * Encuentra reservas confirmadas próximas (para recordatorios)
+   */
+  static async findUpcomingConfirmed() {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayStr = today.toISOString().split('T')[0];
+    
+    return db('bookings')
+      .join('services', 'bookings.service_id', 'services.id')
+      .select(
+        'bookings.*',
+        'services.name as service_name',
+        'services.duration_minutes as service_duration'
+      )
+      .where({ 'bookings.status': 'confirmed' })
+      .where('bookings.booking_date', '>=', todayStr)
+      .where('bookings.reminder_sent', false)
       .orderBy('bookings.booking_date', 'asc')
       .orderBy('bookings.booking_time', 'asc');
   }

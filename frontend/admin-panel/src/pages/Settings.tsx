@@ -18,6 +18,8 @@ interface BusinessSettings {
   payment_instructions_message: string;
   reminder_message: string;
   insurance_enabled?: boolean;
+  reminders_enabled?: boolean;
+  reminder_hours_before?: number;
 }
 
 const DEFAULT_SETTINGS: BusinessSettings = {
@@ -86,6 +88,8 @@ export function Settings() {
   const [showInsuranceForm, setShowInsuranceForm] = useState(false);
   const [editingProvider, setEditingProvider] = useState<InsuranceProvider | null>(null);
   const [insuranceForm, setInsuranceForm] = useState({ name: '', copay_amount: '' });
+  const [remindersEnabled, setRemindersEnabled] = useState(false);
+  const [reminderHoursBefore, setReminderHoursBefore] = useState(24);
 
   const { data: insuranceData, isLoading: insuranceLoading } = useQuery({
     queryKey: ['insurance-providers'],
@@ -101,8 +105,12 @@ export function Settings() {
         payment_instructions_message: data.data.payment_instructions_message || '',
         reminder_message: data.data.reminder_message || '',
         insurance_enabled: data.data.insurance_enabled || false,
+        reminders_enabled: data.data.reminders_enabled || false,
+        reminder_hours_before: data.data.reminder_hours_before || 24,
       });
       setInsuranceEnabled(data.data.insurance_enabled || false);
+      setRemindersEnabled(data.data.reminders_enabled || false);
+      setReminderHoursBefore(data.data.reminder_hours_before || 24);
     }
   }, [data]);
 
@@ -283,6 +291,60 @@ export function Settings() {
               <small style={{ color: '#6c757d' }}>{field.helper}</small>
             </div>
           ))}
+
+          {/* Sección de Recordatorios */}
+          <div style={{ 
+            padding: '1.5rem', 
+            backgroundColor: '#f8f9fa', 
+            borderRadius: '8px',
+            border: '1px solid #dee2e6',
+            marginTop: '1rem'
+          }}>
+            <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>⏰ Recordatorios Automáticos</h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <input
+                  type="checkbox"
+                  id="reminders_enabled"
+                  checked={remindersEnabled}
+                  onChange={(e) => setRemindersEnabled(e.target.checked)}
+                  style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                />
+                <label htmlFor="reminders_enabled" style={{ cursor: 'pointer', fontWeight: 500 }}>
+                  Habilitar recordatorios automáticos
+                </label>
+              </div>
+              
+              {remindersEnabled && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginLeft: '2rem' }}>
+                  <label htmlFor="reminder_hours_before" style={{ fontWeight: 500 }}>
+                    Enviar recordatorio:
+                  </label>
+                  <input
+                    type="number"
+                    id="reminder_hours_before"
+                    value={reminderHoursBefore}
+                    onChange={(e) => setReminderHoursBefore(parseInt(e.target.value) || 24)}
+                    min="1"
+                    max="168"
+                    style={{
+                      width: '80px',
+                      padding: '0.5rem',
+                      borderRadius: '4px',
+                      border: '1px solid #dee2e6',
+                      fontSize: '1rem',
+                    }}
+                  />
+                  <span style={{ color: '#666' }}>horas antes de la cita</span>
+                </div>
+              )}
+              
+              <small style={{ color: '#6c757d', marginLeft: '2rem' }}>
+                Los recordatorios se enviarán automáticamente a los clientes con reservas confirmadas.
+              </small>
+            </div>
+          </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ color: '#6c757d', fontSize: '0.9rem' }}>

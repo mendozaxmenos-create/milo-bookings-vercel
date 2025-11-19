@@ -11,6 +11,8 @@ export class BusinessSettings {
       payment_instructions_message: data.payment_instructions_message,
       reminder_message: data.reminder_message,
       insurance_enabled: data.insurance_enabled !== undefined ? data.insurance_enabled : false,
+      reminders_enabled: data.reminders_enabled !== undefined ? data.reminders_enabled : false,
+      reminder_hours_before: data.reminder_hours_before !== undefined ? data.reminder_hours_before : 24,
       updated_at: new Date().toISOString(),
     };
 

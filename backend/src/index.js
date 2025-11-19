@@ -3,6 +3,7 @@ import app from './api/server.js';
 import { BookingBot } from './bot/index.js';
 import { Business } from '../database/models/Business.js';
 import { startTrialChecker } from './services/trialService.js';
+import { startReminderService } from './services/reminderService.js';
 import knex from 'knex';
 import config from '../knexfile.js';
 import { seed as seedDemo } from '../database/seeds/001_demo_data.js';
@@ -131,6 +132,9 @@ app.listen(PORT, '0.0.0.0', async () => {
   
   // Iniciar servicio de verificación de trials
   startTrialChecker();
+  
+  // Iniciar servicio de recordatorios
+  startReminderService();
   
   console.log('\n✅ Backend listo para recibir peticiones\n');
 });
