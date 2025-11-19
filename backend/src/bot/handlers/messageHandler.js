@@ -900,9 +900,10 @@ Escribe el número o el nombre de la opción que deseas.
       });
 
       // Calcular total
-      const servicePrice = parseFloat(selectedService.price);
+      // Si hay coseguro, el monto a pagar es solo el coseguro (no servicio + coseguro)
+      // Si no hay coseguro, el monto es el precio del servicio
       const copay = parseFloat(copayAmount) || 0;
-      const totalAmount = servicePrice + copay;
+      const totalAmount = copay > 0 ? copay : parseFloat(selectedService.price);
 
       // Construir mensaje de resumen
       let summaryMessage = `📋 *Resumen de tu Reserva:*\n\n`;
@@ -915,16 +916,11 @@ Escribe el número o el nombre de la opción que deseas.
       // Agregar información de obra social si aplica
       if (selectedInsurance) {
         summaryMessage += `🏥 Obra Social: ${selectedInsurance.name}\n`;
-        summaryMessage += `💰 Coseguro: $${copay.toFixed(2)}\n`;
-      }
-      
-      summaryMessage += `\n💰 *Precio del Servicio:* $${servicePrice.toFixed(2)}\n`;
-      
-      if (copay > 0) {
-        summaryMessage += `💰 *Coseguro:* $${copay.toFixed(2)}\n`;
+        summaryMessage += `💰 *Coseguro a Pagar:* $${copay.toFixed(2)}\n`;
+      } else if (selectedService.requires_payment) {
         summaryMessage += `💰 *Total a Pagar:* $${totalAmount.toFixed(2)}\n`;
       } else {
-        summaryMessage += `💰 *Total:* $${totalAmount.toFixed(2)}\n`;
+        summaryMessage += `💰 *Sin pago requerido*\n`;
       }
       
       summaryMessage += `\n¿Confirmas esta reserva? Responde:\n`;
@@ -976,16 +972,29 @@ Escribe el número o el nombre de la opción que deseas.
       // Crear la reserva
       const customerPhone = await this.getCustomerPhone(msg);
       
-      const paymentsEnabled = await PaymentConfigService.isEnabled(this.businessId);
-      
       // Obtener información de obra social si está seleccionada
       const selectedInsurance = userState.selectedInsurance || null;
       const copayAmount = userState.copayAmount || 0;
       const insuranceProviderName = selectedInsurance ? selectedInsurance.name : null;
       const insuranceProviderId = selectedInsurance ? selectedInsurance.id : null;
       
-      // Calcular monto total (precio del servicio + coseguro si aplica)
-      const totalAmount = parseFloat(selectedService.price) + parseFloat(copayAmount);
+      // Calcular monto total
+      // Si hay coseguro, el monto a pagar es solo el coseguro (no servicio + coseguro)
+      // Si no hay coseguro y el servicio requiere pago, el monto es el precio del servicio
+      // Si el servicio no requiere pago, el monto es 0
+      const copay = parseFloat(copayAmount) || 0;
+      let totalAmount = 0;
+      if (copay > 0) {
+        totalAmount = copay; // Solo el coseguro
+      } else if (selectedService.requires_payment) {
+        totalAmount = parseFloat(selectedService.price);
+      } else {
+        totalAmount = 0; // Sin pago requerido
+      }
+
+      // Determinar si se requiere pago
+      const requiresPayment = selectedService.requires_payment && totalAmount > 0;
+      const paymentsEnabled = requiresPayment && await PaymentConfigService.isEnabled(this.businessId);
 
       console.log('[MessageHandler] Creating booking:', {
         business_id: this.businessId,
@@ -996,11 +1005,16 @@ Escribe el número o el nombre de la opción que deseas.
         booking_time: bookingTime,
         amount: totalAmount,
         service_price: selectedService.price,
+        service_requires_payment: selectedService.requires_payment,
         copay_amount: copayAmount,
         insurance_provider_id: insuranceProviderId,
         insurance_provider_name: insuranceProviderName,
+        requiresPayment,
         paymentsEnabled,
       });
+      
+      // Si el servicio no requiere pago, confirmar directamente
+      const initialStatus = requiresPayment && paymentsEnabled ? 'pending_payment' : 'confirmed';
       
       const booking = await Booking.create({
         business_id: this.businessId,
@@ -1013,8 +1027,8 @@ Escribe el número o el nombre de la opción que deseas.
         insurance_provider_id: insuranceProviderId,
         copay_amount: copayAmount,
         insurance_provider_name: insuranceProviderName,
-        status: paymentsEnabled ? 'pending_payment' : 'pending',
-        payment_status: 'pending',
+        status: initialStatus,
+        payment_status: requiresPayment ? 'pending' : 'paid', // Si no requiere pago, marcar como pagado
       });
       
       console.log('[MessageHandler] Booking created successfully:', {
@@ -1023,6 +1037,27 @@ Escribe el número o el nombre de la opción que deseas.
         customer_phone: booking.customer_phone,
       });
 
+      // Si no requiere pago, confirmar directamente
+      if (!requiresPayment) {
+        const confirmationMessage = this.settings?.booking_confirmation_message || 
+          'Tu reserva ha sido confirmada. Te esperamos en la fecha y hora acordada.';
+        
+        await msg.reply(
+          `✅ *Reserva Confirmada*\n\n` +
+          `${confirmationMessage}\n\n` +
+          `📋 *Detalles:*\n` +
+          `👤 ${customerName}\n` +
+          `💼 ${selectedService.name}\n` +
+          `📅 ${formattedDate}\n` +
+          `🕐 ${bookingTime}\n\n` +
+          `¡Te esperamos!`
+        );
+        
+        this.userState.set(userId, { step: 'menu' });
+        return;
+      }
+
+      // Si requiere pago, continuar con el flujo de MercadoPago
       if (paymentsEnabled) {
         try {
           const business = this.business || await Business.findById(this.businessId);

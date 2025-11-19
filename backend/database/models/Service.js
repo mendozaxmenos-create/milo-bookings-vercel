@@ -13,6 +13,7 @@ export class Service {
       price: data.price,
       display_order: data.display_order || 0,
       is_active: data.is_active ?? true,
+      requires_payment: data.requires_payment !== undefined ? data.requires_payment : true,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };

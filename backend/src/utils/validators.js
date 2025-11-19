@@ -22,6 +22,7 @@ export const validateService = (data, isUpdate = false) => {
     price: isUpdate ? Joi.number().min(0).precision(2).optional() : Joi.number().min(0).precision(2).required(),
     display_order: Joi.number().integer().min(0).optional(),
     is_active: Joi.boolean().optional(),
+    requires_payment: Joi.boolean().optional(),
   });
 
   return schema.validate(data);

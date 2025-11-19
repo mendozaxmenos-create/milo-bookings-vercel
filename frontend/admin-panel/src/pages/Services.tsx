@@ -10,6 +10,7 @@ interface Service {
   price: number;
   display_order: number;
   is_active: boolean;
+  requires_payment?: boolean;
 }
 
 export function Services() {
@@ -22,6 +23,7 @@ export function Services() {
     duration_minutes: 30,
     price: 0,
     display_order: 0,
+    requires_payment: true,
   });
 
   const { data: services, isLoading } = useQuery<{ data: Service[] }>({
@@ -83,6 +85,7 @@ export function Services() {
       duration_minutes: 30,
       price: 0,
       display_order: 0,
+      requires_payment: true,
     });
   };
 
@@ -94,6 +97,7 @@ export function Services() {
       duration_minutes: service.duration_minutes,
       price: service.price,
       display_order: service.display_order,
+      requires_payment: service.requires_payment !== undefined ? service.requires_payment : true,
     });
     setShowForm(true);
   };
@@ -204,6 +208,21 @@ export function Services() {
               </div>
             </div>
 
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={formData.requires_payment}
+                  onChange={(e) => setFormData({ ...formData, requires_payment: e.target.checked })}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                />
+                <span>Requiere pago para confirmar la reserva</span>
+              </label>
+              <small style={{ color: '#666', marginLeft: '1.75rem', display: 'block', marginTop: '0.25rem' }}>
+                Si está desactivado, la reserva se confirmará automáticamente sin solicitar pago
+              </small>
+            </div>
+
             <div style={{ display: 'flex', gap: '1rem' }}>
               <button
                 type="submit"
@@ -270,17 +289,37 @@ export function Services() {
                   )}
                 </td>
                 <td style={{ padding: '1rem' }}>{service.duration_minutes} min</td>
-                <td style={{ padding: '1rem' }}>${service.price.toFixed(2)}</td>
                 <td style={{ padding: '1rem' }}>
-                  <span style={{
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '4px',
-                    backgroundColor: service.is_active ? '#d4edda' : '#f8d7da',
-                    color: service.is_active ? '#155724' : '#721c24',
-                    fontSize: '0.875rem',
-                  }}>
-                    {service.is_active ? 'Activo' : 'Inactivo'}
-                  </span>
+                  ${service.price.toFixed(2)}
+                  {service.requires_payment === false && (
+                    <div style={{ fontSize: '0.75rem', color: '#6c757d', marginTop: '0.25rem' }}>
+                      Sin pago
+                    </div>
+                  )}
+                </td>
+                <td style={{ padding: '1rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <span style={{
+                      padding: '0.25rem 0.5rem',
+                      borderRadius: '4px',
+                      backgroundColor: service.is_active ? '#d4edda' : '#f8d7da',
+                      color: service.is_active ? '#155724' : '#721c24',
+                      fontSize: '0.875rem',
+                    }}>
+                      {service.is_active ? 'Activo' : 'Inactivo'}
+                    </span>
+                    {service.requires_payment === false && (
+                      <span style={{
+                        padding: '0.25rem 0.5rem',
+                        borderRadius: '4px',
+                        backgroundColor: '#e7f3ff',
+                        color: '#084298',
+                        fontSize: '0.75rem',
+                      }}>
+                        Sin pago
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td style={{ padding: '1rem', textAlign: 'right' }}>
                   <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
