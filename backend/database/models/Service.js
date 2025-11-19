@@ -14,6 +14,8 @@ export class Service {
       display_order: data.display_order || 0,
       is_active: data.is_active ?? true,
       requires_payment: data.requires_payment !== undefined ? data.requires_payment : true,
+      has_multiple_resources: data.has_multiple_resources !== undefined ? data.has_multiple_resources : false,
+      resource_count: data.resource_count || null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };

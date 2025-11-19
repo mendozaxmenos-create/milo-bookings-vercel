@@ -30,6 +30,8 @@ export const validateService = (data, isUpdate = false) => {
     display_order: Joi.number().integer().min(0).optional(),
     is_active: Joi.boolean().optional(),
     requires_payment: Joi.boolean().optional(),
+    has_multiple_resources: Joi.boolean().optional(),
+    resource_count: Joi.number().integer().min(0).optional().allow(null),
   });
 
   return schema.validate(sanitizedData);

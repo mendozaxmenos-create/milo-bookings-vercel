@@ -368,11 +368,12 @@ Escribe el número o el nombre de la opción que deseas.
         const day = String(date.getDate()).padStart(2, '0');
         const dateStr = `${year}-${month}-${day}`;
 
-        // Obtener horarios disponibles para este día y servicio
+        // Obtener horarios disponibles para este día y servicio (incluyendo serviceId para recursos múltiples)
         const times = await AvailabilityService.getAvailableTimes(
           this.businessId,
           dateStr,
-          selectedService.duration_minutes
+          selectedService.duration_minutes,
+          selectedService.id // Pasar serviceId para verificar recursos múltiples
         );
         if (times.length > 0) {
           availability[dateStr] = times;
@@ -529,7 +530,8 @@ Escribe el número o el nombre de la opción que deseas.
       const availableTimes = await AvailabilityService.getAvailableTimes(
         this.businessId,
         bookingDate,
-        selectedService.duration_minutes
+        selectedService.duration_minutes,
+        selectedService.id // Pasar serviceId para verificar recursos múltiples
       );
 
       if (availableTimes.length === 0) {
@@ -653,7 +655,8 @@ Escribe el número o el nombre de la opción que deseas.
         this.businessId,
         bookingDate,
         bookingTime,
-        selectedService.duration_minutes
+        selectedService.duration_minutes,
+        selectedService.id // Pasar serviceId para verificar recursos múltiples
       );
 
       if (!isAvailable) {
@@ -984,7 +987,8 @@ Escribe el número o el nombre de la opción que deseas.
         this.businessId,
         bookingDate,
         bookingTime,
-        selectedService.duration_minutes
+        selectedService.duration_minutes,
+        selectedService.id // Pasar serviceId para verificar recursos múltiples
       );
 
       if (!isAvailable) {
@@ -1043,6 +1047,38 @@ Escribe el número o el nombre de la opción que deseas.
       // Si el servicio no requiere pago, confirmar directamente
       const initialStatus = requiresPayment && paymentsEnabled ? 'pending_payment' : 'confirmed';
       
+      // Verificar si el servicio tiene recursos múltiples y asignar automáticamente uno disponible
+      let assignedResource = null;
+      let assignedResourceName = null;
+
+      if (selectedService.has_multiple_resources) {
+        try {
+          const { ServiceResource } = await import('../../../database/models/ServiceResource.js');
+          assignedResource = await ServiceResource.assignAvailableResource(
+            selectedService.id,
+            bookingDate,
+            bookingTime
+          );
+
+          if (assignedResource) {
+            assignedResourceName = assignedResource.name;
+            console.log('[MessageHandler] Recurso asignado automáticamente:', {
+              resourceId: assignedResource.id,
+              resourceName: assignedResource.name,
+              serviceId: selectedService.id,
+              bookingDate,
+              bookingTime,
+            });
+          } else {
+            console.warn('[MessageHandler] No hay recursos disponibles, pero el horario está disponible');
+            // Aunque no debería pasar si la lógica de disponibilidad está correcta
+          }
+        } catch (error) {
+          console.error('[MessageHandler] Error asignando recurso:', error);
+          // Continuar sin recurso asignado si hay error
+        }
+      }
+
       const booking = await Booking.create({
         business_id: this.businessId,
         service_id: selectedService.id,
@@ -1054,6 +1090,8 @@ Escribe el número o el nombre de la opción que deseas.
         insurance_provider_id: insuranceProviderId,
         copay_amount: copayAmount,
         insurance_provider_name: insuranceProviderName,
+        resource_id: assignedResource?.id || null,
+        resource_name: assignedResourceName,
         status: initialStatus,
         payment_status: requiresPayment ? 'pending' : 'paid', // Si no requiere pago, marcar como pagado
       });

@@ -23,6 +23,8 @@ export class Booking {
       insurance_provider_id: data.insurance_provider_id || null,
       copay_amount: data.copay_amount || null,
       insurance_provider_name: data.insurance_provider_name || null,
+      resource_id: data.resource_id || null,
+      resource_name: data.resource_name || null,
       reminder_sent: data.reminder_sent || false,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),

@@ -14,6 +14,7 @@ import paymentRoutes from './routes/payments.js';
 import botRoutes from './routes/bot.js';
 import adminRoutes from './routes/admin.js';
 import insuranceRoutes from './routes/insurance.js';
+import serviceResourcesRoutes from './routes/serviceResources.js';
 
 dotenv.config();
 
@@ -355,6 +356,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/bot', botRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/insurance', insuranceRoutes);
+app.use('/api/service-resources', serviceResourcesRoutes);
 
 // Error handling con logging estructurado
 app.use((err, req, res, next) => {

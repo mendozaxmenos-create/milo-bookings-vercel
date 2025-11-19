@@ -1,6 +1,8 @@
 import db from '../../database/index.js';
 import { Booking } from '../../database/models/Booking.js';
 import { BusinessHours } from '../../database/models/BusinessHours.js';
+import { Service } from '../../database/models/Service.js';
+import { ServiceResource } from '../../database/models/ServiceResource.js';
 
 /**
  * Servicio para gestionar disponibilidad de horarios
@@ -39,9 +41,10 @@ export class AvailabilityService {
    * @param {string} businessId - ID del negocio
    * @param {string} date - Fecha en formato YYYY-MM-DD
    * @param {number} serviceDuration - Duración del servicio en minutos
+   * @param {string} serviceId - ID del servicio (opcional, para verificar recursos múltiples)
    * @returns {Promise<Array<string>>} Array de horarios disponibles en formato HH:MM
    */
-  static async getAvailableTimes(businessId, date, serviceDuration = 30) {
+  static async getAvailableTimes(businessId, date, serviceDuration = 30, serviceId = null) {
     // Obtener horarios de trabajo configurados para este día
     const businessHours = await this.getBusinessHoursForDate(businessId, date);
     
@@ -67,25 +70,47 @@ export class AvailabilityService {
       allTimeSlots.push(timeStr);
     }
 
+    // Verificar si el servicio tiene recursos múltiples
+    let service = null;
+    let hasMultipleResources = false;
+    let totalResources = 1;
+
+    if (serviceId) {
+      service = await Service.findById(serviceId);
+      if (service) {
+        hasMultipleResources = service.has_multiple_resources || false;
+        if (hasMultipleResources) {
+          const resources = await ServiceResource.findByService(serviceId, false);
+          totalResources = resources.length;
+        }
+      }
+    }
+
     // Obtener reservas existentes para esa fecha
-    const existingBookings = await Booking.findByDateRange(
+    let existingBookings = await Booking.findByDateRange(
       businessId,
       date,
       date
     );
 
+    // Si hay serviceId, filtrar solo reservas de ese servicio
+    if (serviceId) {
+      existingBookings = existingBookings.filter(b => b.service_id === serviceId);
+    }
+
     // Obtener slots bloqueados de la tabla availability_slots
     const blockedSlots = await db('availability_slots')
       .where({ business_id: businessId, date })
-      .where({ is_blocked: true })
-      .orWhere({ is_available: false });
+      .where(function() {
+        this.where({ is_blocked: true }).orWhere({ is_available: false });
+      });
 
-    // Crear un Set de horarios ocupados
-    const occupiedTimes = new Set();
+    // Crear un Map de horarios ocupados (si tiene recursos múltiples, contar cuántos están ocupados)
+    const occupiedTimes = hasMultipleResources ? new Map() : new Set();
 
     // Agregar horarios ocupados por reservas confirmadas
     existingBookings
-      .filter(b => b.status === 'confirmed' || b.status === 'pending')
+      .filter(b => b.status === 'confirmed' || b.status === 'pending' || b.status === 'pending_payment')
       .forEach(booking => {
         const bookingTime = booking.booking_time;
         const [hours, minutes] = bookingTime.split(':').map(Number);
@@ -100,7 +125,14 @@ export class AvailabilityService {
 
           // Si hay solapamiento, marcar como ocupado
           if (slotStart < bookingEnd && slotEnd > bookingStart) {
-            occupiedTimes.add(slot);
+            if (hasMultipleResources) {
+              // Contar cuántos recursos están ocupados en este horario
+              const currentCount = occupiedTimes.get(slot) || 0;
+              occupiedTimes.set(slot, currentCount + 1);
+            } else {
+              // Sin recursos múltiples, marcar directamente como ocupado
+              occupiedTimes.add(slot);
+            }
           }
         });
       });
@@ -139,7 +171,14 @@ export class AvailabilityService {
       }
 
       // Filtrar horarios ocupados
-      return !occupiedTimes.has(slot);
+      if (hasMultipleResources) {
+        // Si tiene recursos múltiples, el horario está disponible si hay al menos un recurso libre
+        const occupiedCount = occupiedTimes.get(slot) || 0;
+        return occupiedCount < totalResources;
+      } else {
+        // Sin recursos múltiples, el horario está disponible si no está ocupado
+        return !occupiedTimes.has(slot);
+      }
     });
   }
 
@@ -149,10 +188,11 @@ export class AvailabilityService {
    * @param {string} date - Fecha en formato YYYY-MM-DD
    * @param {string} time - Hora en formato HH:MM
    * @param {number} serviceDuration - Duración del servicio en minutos
+   * @param {string} serviceId - ID del servicio (opcional, para verificar recursos múltiples)
    * @returns {Promise<boolean>} true si está disponible
    */
-  static async isTimeAvailable(businessId, date, time, serviceDuration = 30) {
-    const availableTimes = await this.getAvailableTimes(businessId, date, serviceDuration);
+  static async isTimeAvailable(businessId, date, time, serviceDuration = 30, serviceId = null) {
+    const availableTimes = await this.getAvailableTimes(businessId, date, serviceDuration, serviceId);
     return availableTimes.includes(time);
   }
 
