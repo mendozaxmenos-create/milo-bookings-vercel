@@ -18,7 +18,9 @@ export function AdminBusinesses() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
   const [showPriceModal, setShowPriceModal] = useState(false);
+  const [showCredentialsModal, setShowCredentialsModal] = useState(false);
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
+  const [credentialsBusiness, setCredentialsBusiness] = useState<Business | null>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
@@ -291,11 +293,8 @@ export function AdminBusinesses() {
               <div style={{ display: 'flex', gap: '0.5rem', flexDirection: 'column' }}>
                 <button
                   onClick={() => {
-                    // Abrir panel del negocio en nueva pestaña
-                    // Necesita login como business user, por ahora solo muestra info
-                    const businessInfo = `Business ID: ${business.id}\nTeléfono: ${business.owner_phone || business.phone}\nContraseña temporal: changeme123`;
-                    alert(`Para acceder al panel de este negocio:\n\n${businessInfo}\n\nNota: Debes hacer login con estas credenciales en una nueva pestaña.`);
-                    // TODO: Implementar login automático o generar link con token temporal
+                    setCredentialsBusiness(business);
+                    setShowCredentialsModal(true);
                   }}
                   style={{
                     padding: '0.5rem 1rem',
@@ -379,6 +378,16 @@ export function AdminBusinesses() {
                  onRefresh={async () => {
                    return await loadQRCode(selectedBusiness.id);
                  }}
+        />
+      )}
+
+      {showCredentialsModal && credentialsBusiness && (
+        <CredentialsModal
+          business={credentialsBusiness}
+          onClose={() => {
+            setShowCredentialsModal(false);
+            setCredentialsBusiness(null);
+          }}
         />
       )}
 
@@ -777,6 +786,110 @@ function QRModal({
         >
           Cerrar
         </button>
+      </div>
+    </div>
+  );
+}
+
+function CredentialsModal({
+  business,
+  onClose,
+}: {
+  business: Business;
+  onClose: () => void;
+}) {
+  const fields = [
+    { label: 'Business ID', value: business.id },
+    { label: 'Teléfono Owner', value: business.owner_phone || business.phone || 'Sin teléfono' },
+    { label: 'Contraseña temporal', value: 'changeme123' },
+  ];
+
+  const handleCopy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      alert('Copiado al portapapeles');
+    } catch (error) {
+      console.error('Error copying text:', error);
+      alert('No se pudo copiar. Copia manualmente.');
+    }
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+      }}
+    >
+      <div
+        style={{
+          backgroundColor: 'white',
+          padding: '2rem',
+          borderRadius: '8px',
+          width: '100%',
+          maxWidth: '480px',
+        }}
+      >
+        <h2 style={{ marginTop: 0, marginBottom: '1rem' }}>Credenciales - {business.name}</h2>
+        <p style={{ color: '#6c757d', marginBottom: '1rem' }}>
+          Usa estas credenciales para ingresar en una ventana nueva como propietario. Haz clic en “Copiar” para evitar errores.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {fields.map((field) => (
+            <div key={field.label} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <strong>{field.label}</strong>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input
+                  value={field.value}
+                  readOnly
+                  style={{
+                    flex: 1,
+                    padding: '0.5rem',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontFamily: 'monospace',
+                  }}
+                />
+                <button
+                  onClick={() => handleCopy(field.value)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: '#007bff',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Copiar
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: '#6c757d',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+            }}
+          >
+            Cerrar
+          </button>
+        </div>
       </div>
     </div>
   );
