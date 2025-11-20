@@ -878,7 +878,12 @@ function CredentialsModal({
         <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
           <button
             onClick={() => {
-              window.open(`/?business=${business.id}`, '_blank');
+              const params = new URLSearchParams();
+              params.set('business', business.id);
+              if (business.owner_phone || business.phone) {
+                params.set('phone', (business.owner_phone || business.phone) ?? '');
+              }
+              window.open(`/login?${params.toString()}`, '_blank');
             }}
             style={{
               padding: '0.5rem 1rem',

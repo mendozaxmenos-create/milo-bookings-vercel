@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { login, forgotPassword, resetPassword } from '../services/api';
@@ -8,8 +8,10 @@ export function Login() {
   const resetToken = searchParams.get('token');
   
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-  const [businessId, setBusinessId] = useState('');
-  const [phone, setPhone] = useState('');
+  const initialBusinessId = searchParams.get('business') || '';
+  const initialPhone = searchParams.get('phone') || '';
+  const [businessId, setBusinessId] = useState(initialBusinessId);
+  const [phone, setPhone] = useState(initialPhone);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -27,6 +29,13 @@ export function Login() {
   
   const navigate = useNavigate();
   const { login: setAuth } = useAuthStore();
+
+  useEffect(() => {
+    const businessParam = searchParams.get('business') || '';
+    const phoneParam = searchParams.get('phone') || '';
+    setBusinessId(businessParam);
+    setPhone(phoneParam);
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
