@@ -28,14 +28,19 @@ export function Login() {
   const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
   
   const navigate = useNavigate();
-  const { login: setAuth } = useAuthStore();
+  const { login: setAuth, logout } = useAuthStore();
 
   useEffect(() => {
     const businessParam = searchParams.get('business') || '';
     const phoneParam = searchParams.get('phone') || '';
     setBusinessId(businessParam);
     setPhone(phoneParam);
-  }, [searchParams]);
+
+    const forceLogout = searchParams.get('forceLogout');
+    if (forceLogout) {
+      logout();
+    }
+  }, [searchParams, logout]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

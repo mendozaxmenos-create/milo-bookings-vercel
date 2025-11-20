@@ -883,6 +883,7 @@ function CredentialsModal({
               if (business.owner_phone || business.phone) {
                 params.set('phone', (business.owner_phone || business.phone) ?? '');
               }
+                    params.set('forceLogout', '1');
               window.open(`/login?${params.toString()}`, '_blank');
             }}
             style={{
