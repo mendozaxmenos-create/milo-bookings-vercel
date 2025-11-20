@@ -130,14 +130,30 @@ export class BookingBot {
     try {
       console.log(`🔄 [Bot ${this.businessId}] Calling client.initialize()...`);
       
-      // Inicializar con timeout para detectar si se queda colgado
+      // Inicializar con timeout más largo (120 segundos) para entornos cloud
+      // En Render/cloud, la inicialización puede tardar más debido a recursos limitados
       const initPromise = this.client.initialize();
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Timeout: client.initialize() took more than 60 seconds')), 60000);
+        setTimeout(() => {
+          console.warn(`⏰ [Bot ${this.businessId}] Timeout warning: client.initialize() está tardando más de 120 segundos`);
+          console.warn(`⏰ [Bot ${this.businessId}] Esto puede ser normal en entornos cloud. El bot continuará inicializándose en segundo plano.`);
+          reject(new Error('Timeout: client.initialize() took more than 120 seconds'));
+        }, 120000); // 120 segundos
       });
       
-      await Promise.race([initPromise, timeoutPromise]);
-      console.log(`✅ [Bot ${this.businessId}] Client initialized successfully`);
+      try {
+        await Promise.race([initPromise, timeoutPromise]);
+        console.log(`✅ [Bot ${this.businessId}] Client initialized successfully`);
+      } catch (timeoutError) {
+        if (timeoutError.message.includes('Timeout')) {
+          console.warn(`⚠️ [Bot ${this.businessId}] Timeout en initialize(), pero continuando...`);
+          console.warn(`⚠️ [Bot ${this.businessId}] El bot puede seguir inicializándose en segundo plano`);
+          // No lanzar el error, permitir que continúe
+          // El bot puede seguir funcionando aunque el initialize() no haya terminado
+        } else {
+          throw timeoutError;
+        }
+      }
       
       console.log(`🔄 [Bot ${this.businessId}] Initializing message handler...`);
       await this.messageHandler.initialize();

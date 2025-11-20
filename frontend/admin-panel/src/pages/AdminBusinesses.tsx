@@ -397,10 +397,18 @@ export function AdminBusinesses() {
             setCredentialsBusiness(null);
           }}
           onUpdate={(businessId, whatsappNumber) => {
-            updateBusinessMutation.mutate({
-              id: businessId,
-              data: { whatsapp_number: whatsappNumber },
-            });
+            updateBusinessMutation.mutate(
+              {
+                id: businessId,
+                data: { whatsapp_number: whatsappNumber },
+              },
+              {
+                onSuccess: () => {
+                  // Invalidar la query para refrescar los datos del negocio
+                  queryClient.invalidateQueries({ queryKey: ['admin-businesses'] });
+                },
+              }
+            );
           }}
           isUpdating={updateBusinessMutation.isPending}
         />
@@ -819,6 +827,12 @@ function CredentialsModal({
 }) {
   const [editingWhatsApp, setEditingWhatsApp] = useState(false);
   const [newWhatsAppNumber, setNewWhatsAppNumber] = useState(business.whatsapp_number || '');
+
+  // Actualizar el número cuando cambie el business prop
+  useEffect(() => {
+    setNewWhatsAppNumber(business.whatsapp_number || '');
+    setEditingWhatsApp(false);
+  }, [business.whatsapp_number]);
 
   const fields = [
     { label: 'Business ID', value: business.id },
