@@ -31,16 +31,21 @@ export function Login() {
   const { login: setAuth, logout } = useAuthStore();
 
   useEffect(() => {
+    const forceLogout = searchParams.get('forceLogout');
+    if (forceLogout === '1') {
+      // Ejecutar logout inmediatamente antes de cualquier otra cosa
+      logout();
+      // Limpiar el parámetro de la URL para evitar loops
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('forceLogout');
+      navigate(`/login?${newParams.toString()}`, { replace: true });
+    }
+
     const businessParam = searchParams.get('business') || '';
     const phoneParam = searchParams.get('phone') || '';
     setBusinessId(businessParam);
     setPhone(phoneParam);
-
-    const forceLogout = searchParams.get('forceLogout');
-    if (forceLogout) {
-      logout();
-    }
-  }, [searchParams, logout]);
+  }, [searchParams, logout, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

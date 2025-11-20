@@ -9,6 +9,7 @@ import {
   reconnectBusinessBot,
   getSubscriptionPrice,
   updateSubscriptionPrice,
+  updateBusiness,
   type Business,
   type CreateBusinessRequest,
 } from '../services/api';
@@ -82,6 +83,13 @@ export function AdminBusinesses() {
           loadQRCode(selectedBusiness.id);
         }
       }, 5000); // 5 segundos para dar tiempo a que el bot genere el QR
+    },
+  });
+
+  const updateBusinessMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreateBusinessRequest> }) => updateBusiness(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-businesses'] });
     },
   });
 
@@ -388,6 +396,13 @@ export function AdminBusinesses() {
             setShowCredentialsModal(false);
             setCredentialsBusiness(null);
           }}
+          onUpdate={(businessId, whatsappNumber) => {
+            updateBusinessMutation.mutate({
+              id: businessId,
+              data: { whatsapp_number: whatsappNumber },
+            });
+          }}
+          isUpdating={updateBusinessMutation.isPending}
         />
       )}
 
@@ -794,10 +809,17 @@ function QRModal({
 function CredentialsModal({
   business,
   onClose,
+  onUpdate,
+  isUpdating,
 }: {
   business: Business;
   onClose: () => void;
+  onUpdate?: (businessId: string, whatsappNumber: string) => void;
+  isUpdating?: boolean;
 }) {
+  const [editingWhatsApp, setEditingWhatsApp] = useState(false);
+  const [newWhatsAppNumber, setNewWhatsAppNumber] = useState(business.whatsapp_number || '');
+
   const fields = [
     { label: 'Business ID', value: business.id },
     { label: 'Teléfono Owner', value: business.owner_phone || business.phone || 'Sin teléfono' },
@@ -811,6 +833,13 @@ function CredentialsModal({
     } catch (error) {
       console.error('Error copying text:', error);
       alert('No se pudo copiar. Copia manualmente.');
+    }
+  };
+
+  const handleSaveWhatsApp = () => {
+    if (onUpdate && newWhatsAppNumber.trim()) {
+      onUpdate(business.id, newWhatsAppNumber.trim());
+      setEditingWhatsApp(false);
     }
   };
 
@@ -874,6 +903,106 @@ function CredentialsModal({
               </div>
             </div>
           ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <strong>WhatsApp Number (para bot)</strong>
+            {editingWhatsApp ? (
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  value={newWhatsAppNumber}
+                  onChange={(e) => setNewWhatsAppNumber(e.target.value)}
+                  placeholder="+5492617542218"
+                  style={{
+                    flex: 1,
+                    padding: '0.5rem',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontFamily: 'monospace',
+                  }}
+                />
+                <button
+                  onClick={handleSaveWhatsApp}
+                  disabled={isUpdating || !newWhatsAppNumber.trim()}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: '#28a745',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: isUpdating ? 'not-allowed' : 'pointer',
+                    opacity: isUpdating ? 0.6 : 1,
+                  }}
+                >
+                  {isUpdating ? 'Guardando...' : 'Guardar'}
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingWhatsApp(false);
+                    setNewWhatsAppNumber(business.whatsapp_number || '');
+                  }}
+                  disabled={isUpdating}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: '#6c757d',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: isUpdating ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  Cancelar
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input
+                  value={business.whatsapp_number || 'Sin número configurado'}
+                  readOnly
+                  style={{
+                    flex: 1,
+                    padding: '0.5rem',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontFamily: 'monospace',
+                    backgroundColor: business.whatsapp_number ? 'white' : '#f8f9fa',
+                  }}
+                />
+                <button
+                  onClick={() => handleCopy(business.whatsapp_number || '')}
+                  disabled={!business.whatsapp_number}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: '#007bff',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: business.whatsapp_number ? 'pointer' : 'not-allowed',
+                    opacity: business.whatsapp_number ? 1 : 0.6,
+                  }}
+                >
+                  Copiar
+                </button>
+                <button
+                  onClick={() => setEditingWhatsApp(true)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: '#ffc107',
+                    color: '#212529',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Editar
+                </button>
+              </div>
+            )}
+            {!business.whatsapp_number && (
+              <p style={{ fontSize: '0.75rem', color: '#856404', marginTop: '0.25rem' }}>
+                ⚠️ Sin número de WhatsApp configurado. El bot no funcionará hasta que se configure un número.
+              </p>
+            )}
+          </div>
         </div>
         <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
           <button
