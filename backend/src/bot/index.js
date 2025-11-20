@@ -77,7 +77,7 @@ export class BookingBot {
       }
     });
 
-    this.client.on('ready', () => {
+    this.client.on('ready', async () => {
       console.log(`✅ [Bot ${this.businessId}] Bot ready and authenticated!`);
       console.log(`✅ [Bot ${this.businessId}] Client info:`, {
         wid: this.client.info?.wid,
