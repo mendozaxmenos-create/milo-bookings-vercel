@@ -113,11 +113,17 @@ export class BookingBot {
     });
 
     this.client.on('message', async (msg) => {
-      console.log(`[Bot] Message received from ${msg.from}: "${msg.body?.substring(0, 50)}"`);
+      console.log(`📨 [Bot ${this.businessId}] Message received from ${msg.from}`);
+      console.log(`📨 [Bot ${this.businessId}] Message body: "${msg.body?.substring(0, 100)}"`);
+      console.log(`📨 [Bot ${this.businessId}] Message type: ${msg.type}`);
+      console.log(`📨 [Bot ${this.businessId}] Is from me: ${msg.fromMe}`);
+      console.log(`📨 [Bot ${this.businessId}] Is status: ${msg.isStatus}`);
       try {
         await this.messageHandler.handleMessage(msg);
+        console.log(`✅ [Bot ${this.businessId}] Message handled successfully`);
       } catch (error) {
-        console.error(`[Bot] Error handling message:`, error);
+        console.error(`❌ [Bot ${this.businessId}] Error handling message:`, error);
+        console.error(`❌ [Bot ${this.businessId}] Error stack:`, error.stack);
       }
     });
 
@@ -137,10 +143,7 @@ export class BookingBot {
       await this.messageHandler.initialize();
       console.log(`✅ [Bot ${this.businessId}] Message handler initialized successfully`);
       
-      // Esperar un poco para que los eventos se disparen
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Verificar estado del cliente después de inicializar
+      // Verificar estado del cliente inmediatamente después de inicializar
       try {
         const clientInfo = this.client.info;
         if (clientInfo) {
@@ -162,6 +165,24 @@ export class BookingBot {
         console.log(`⏳ [Bot ${this.businessId}] Client info not available yet (this is normal if waiting for QR)`);
         console.log(`⏳ [Bot ${this.businessId}] Error accessing client.info:`, err.message);
       }
+      
+      // Esperar un poco para que los eventos se disparen
+      console.log(`⏳ [Bot ${this.businessId}] Waiting 3 seconds for events to fire...`);
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // Verificar estado nuevamente después de esperar
+      try {
+        const clientInfo = this.client.info;
+        if (clientInfo) {
+          console.log(`✅ [Bot ${this.businessId}] After wait: Client is authenticated!`);
+        } else {
+          console.log(`⏳ [Bot ${this.businessId}] After wait: Still waiting for authentication...`);
+        }
+      } catch (err) {
+        console.log(`⏳ [Bot ${this.businessId}] After wait: Client info still not available`);
+      }
+      
+      console.log(`✅ [Bot ${this.businessId}] Initialization complete!`);
     } catch (error) {
       console.error(`❌ [Bot ${this.businessId}] Error during initialization:`, error);
       console.error(`❌ [Bot ${this.businessId}] Error message:`, error.message);
