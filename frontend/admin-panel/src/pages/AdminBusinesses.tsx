@@ -572,51 +572,94 @@ function QRModal({
   business: Business;
   qrCode: string | null;
   onClose: () => void;
-  onRefresh: () => void;
+  onRefresh: () => Promise<boolean>; // Ahora retorna boolean para indicar si debe continuar
 }) {
   const [isPolling, setIsPolling] = useState(false);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const attemptsRef = useRef(0);
+  const maxAttemptsRef = useRef(10); // Máximo de intentos
+  const isMountedRef = useRef(true);
   
+  // Efecto para iniciar polling cuando se abre el modal
   useEffect(() => {
-    // Si no hay QR, iniciar polling automático
-    // Pero solo si el modal está abierto y no hay errores de red
-    if (!qrCode && !isPolling) {
-      setIsPolling(true);
-      attemptsRef.current = 0;
-      const maxAttempts = 10; // Reducir a 10 intentos (20 segundos)
+    isMountedRef.current = true;
+    
+    // Cargar QR inicial inmediatamente
+    const loadInitialQR = async () => {
+      try {
+        const found = await onRefresh();
+        if (found && isMountedRef.current) {
+          // QR encontrado o bot autenticado, no hacer polling
+          return;
+        }
+      } catch (error) {
+        console.error('[QR] Error cargando QR inicial:', error);
+      }
       
-      pollingRef.current = setInterval(async () => {
-        attemptsRef.current++;
+      // Si no hay QR y el componente sigue montado, iniciar polling
+      if (isMountedRef.current && !qrCode && !pollingRef.current) {
+        setIsPolling(true);
+        attemptsRef.current = 0;
+        maxAttemptsRef.current = 10;
         
-        try {
-          await onRefresh(); // Llamar a onRefresh para intentar cargar el QR
-        } catch (error: any) {
-          // Si hay error de red (servidor caído), detener polling
-          if (error?.code === 'ERR_NETWORK' || error?.response?.status >= 500) {
-            console.warn('[QR] Error de red detectado, deteniendo polling');
+        pollingRef.current = setInterval(async () => {
+          if (!isMountedRef.current) {
+            if (pollingRef.current) {
+              clearInterval(pollingRef.current);
+              pollingRef.current = null;
+            }
+            return;
+          }
+          
+          attemptsRef.current++;
+          console.log(`[QR] Polling intento ${attemptsRef.current}/${maxAttemptsRef.current} para ${business.name}`);
+          
+          try {
+            const found = await onRefresh();
+            
+            // Si encontramos QR o bot está autenticado, detener polling
+            if (found) {
+              console.log('[QR] QR encontrado o bot autenticado, deteniendo polling');
+              if (pollingRef.current) {
+                clearInterval(pollingRef.current);
+                pollingRef.current = null;
+              }
+              setIsPolling(false);
+              return;
+            }
+          } catch (error: any) {
+            // Si hay error de red (servidor caído), detener polling
+            if (error?.code === 'ERR_NETWORK' || error?.response?.status >= 500) {
+              console.warn('[QR] Error de red detectado, deteniendo polling');
+              if (pollingRef.current) {
+                clearInterval(pollingRef.current);
+                pollingRef.current = null;
+              }
+              setIsPolling(false);
+              return;
+            }
+            // Para otros errores, continuar
+            console.warn('[QR] Error en polling (continuando):', error?.message);
+          }
+          
+          // Si alcanzamos el máximo de intentos, parar
+          if (attemptsRef.current >= maxAttemptsRef.current) {
+            console.log('[QR] Máximo de intentos alcanzado, deteniendo polling');
             if (pollingRef.current) {
               clearInterval(pollingRef.current);
               pollingRef.current = null;
             }
             setIsPolling(false);
-            return;
           }
-        }
-        
-        // Si alcanzamos el máximo de intentos, parar
-        if (attemptsRef.current >= maxAttempts) {
-          if (pollingRef.current) {
-            clearInterval(pollingRef.current);
-            pollingRef.current = null;
-          }
-          setIsPolling(false);
-        }
-      }, 3000); // Aumentar a 3 segundos para reducir carga
-    }
+        }, 3000); // Intentar cada 3 segundos
+      }
+    };
+    
+    loadInitialQR();
     
     // Limpiar cuando el componente se desmonte
     return () => {
+      isMountedRef.current = false;
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
         pollingRef.current = null;
@@ -624,7 +667,7 @@ function QRModal({
       setIsPolling(false);
       attemptsRef.current = 0;
     };
-  }, []); // Solo ejecutar una vez al montar
+  }, [business.id]); // Solo ejecutar cuando cambia el business.id
   
   // Detener polling si encontramos QR
   useEffect(() => {
