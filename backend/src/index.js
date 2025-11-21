@@ -162,14 +162,23 @@ app.listen(PORT, '0.0.0.0', async () => {
     console.error('[Init] ERROR inicializando bots:', error);
   }
   
-  // Iniciar servicio de verificación de trials
-  startTrialChecker();
+  const enableTrials = process.env.ENABLE_TRIAL_SERVICE !== 'false';
+  const enableReminders = process.env.ENABLE_REMINDERS !== 'false';
+  const enableBackups = process.env.ENABLE_BACKUPS !== 'false';
   
-  // Iniciar servicio de recordatorios
-  startReminderService();
+  if (enableTrials) {
+    startTrialChecker();
+  } else {
+    console.log('[Init] ⏸️ Servicio de verificación de trials deshabilitado por configuración');
+  }
+  
+  if (enableReminders) {
+    startReminderService();
+  } else {
+    console.log('[Init] ⏸️ Servicio de recordatorios deshabilitado por configuración');
+  }
 
-  // Iniciar servicio de backup automático (solo en producción y si DATABASE_URL está configurada)
-  if (process.env.DATABASE_URL && process.env.NODE_ENV === 'production') {
+  if (enableBackups && process.env.DATABASE_URL && process.env.NODE_ENV === 'production') {
     const backupHour = parseInt(process.env.BACKUP_HOUR || '2', 10); // Default: 2 AM
     try {
       startBackupService(backupHour);
@@ -178,6 +187,8 @@ app.listen(PORT, '0.0.0.0', async () => {
       console.error('[Init] ⚠️ Error iniciando servicio de backup:', error.message);
       console.error('[Init] El servidor continuará sin backups automáticos');
     }
+  } else if (!enableBackups) {
+    console.log('[Init] ⏸️ Servicio de backups automáticos deshabilitado por configuración');
   } else {
     console.log('[Init] ⚠️ Backup automático deshabilitado (solo disponible en producción con DATABASE_URL)');
   }
