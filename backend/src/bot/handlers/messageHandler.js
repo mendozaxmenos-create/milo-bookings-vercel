@@ -42,6 +42,17 @@ export class MessageHandler {
     return num.toString().split('').map(digit => emojiMap[digit]).join('');
   }
 
+  formatPrice(value) {
+    const parsed =
+      typeof value === 'number'
+        ? value
+        : parseFloat(typeof value === 'string' ? value : '0');
+    if (Number.isNaN(parsed)) {
+      return '0.00';
+    }
+    return parsed.toFixed(2);
+  }
+
   // Recargar configuración desde la base de datos
   async reloadSettings() {
     this.business = await Business.findById(this.businessId);
@@ -362,7 +373,7 @@ Escribe el número o el nombre de la opción que deseas.
         if (service.description) {
           message += `   ${service.description}\n`;
         }
-        message += `   ⏱️ ${service.duration_minutes} min | 💰 $${service.price.toFixed(2)}\n\n`;
+        message += `   ⏱️ ${service.duration_minutes} min | 💰 $${this.formatPrice(service.price)}\n\n`;
       });
 
       message += '💡 *Opciones:*\n';
@@ -393,7 +404,7 @@ Escribe el número o el nombre de la opción que deseas.
         if (service.description) {
           message += `   ${service.description}\n`;
         }
-        message += `   ⏱️ ${service.duration_minutes} min | 💰 $${service.price.toFixed(2)}\n\n`;
+        message += `   ⏱️ ${service.duration_minutes} min | 💰 $${this.formatPrice(service.price)}\n\n`;
       });
 
       message += '💡 *Opciones:*\n';
@@ -477,7 +488,7 @@ Escribe el número o el nombre de la opción que deseas.
 
       // Formatear mensaje con disponibilidad
       let message = `✅ Servicio seleccionado: *${selectedService.name}*\n`;
-      message += `💰 Precio: $${selectedService.price.toFixed(2)}\n`;
+      message += `💰 Precio: $${this.formatPrice(selectedService.price)}\n`;
       message += `⏱️ Duración: ${selectedService.duration_minutes} minutos\n\n`;
       message += `📅 *Disponibilidad de los próximos días:*\n\n`;
 
@@ -1271,7 +1282,7 @@ Escribe el número o el nombre de la opción que deseas.
         `💼 Servicio: ${selectedService.name}\n` +
         `📅 Fecha: ${formattedDate}\n` +
         `🕐 Hora: ${bookingTime}\n` +
-        `💰 Monto: $${selectedService.price.toFixed(2)}\n\n` +
+        `💰 Monto: $${this.formatPrice(selectedService.price)}\n\n` +
         `${confirmationMessage}\n\n` +
         `🆔 ID de reserva: ${booking.id}\n\n` +
         `Escribe "menu" para ver más opciones.`
