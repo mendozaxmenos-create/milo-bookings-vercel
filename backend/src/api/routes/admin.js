@@ -245,19 +245,50 @@ router.get('/businesses/:id', async (req, res) => {
  */
 router.put('/businesses/:id', async (req, res) => {
   try {
-    const { error, value } = validateBusiness(req.body, true);
-    if (error) {
-      return res.status(400).json({ error: error.details[0].message });
-    }
-
-    const business = await Business.update(req.params.id, value);
+    console.log(`[Admin] PUT /businesses/${req.params.id} - Actualizando negocio`);
+    console.log(`[Admin] Datos recibidos:`, {
+      whatsapp_number: req.body.whatsapp_number,
+      name: req.body.name,
+      phone: req.body.phone,
+    });
     
-    if (!business) {
+    // Obtener negocio actual para comparar
+    const currentBusiness = await Business.findById(req.params.id);
+    if (!currentBusiness) {
+      console.log(`[Admin] ❌ Negocio ${req.params.id} no encontrado`);
       return res.status(404).json({ error: 'Business not found' });
     }
     
+    console.log(`[Admin] Negocio actual:`, {
+      id: currentBusiness.id,
+      name: currentBusiness.name,
+      current_whatsapp_number: currentBusiness.whatsapp_number,
+      new_whatsapp_number: req.body.whatsapp_number,
+    });
+    
+    const { error, value } = validateBusiness(req.body, true);
+    if (error) {
+      console.error(`[Admin] Error validando datos:`, error.details[0].message);
+      return res.status(400).json({ error: error.details[0].message });
+    }
+
+    console.log(`[Admin] Datos validados, actualizando negocio...`);
+    const business = await Business.update(req.params.id, value);
+    
+    if (!business) {
+      console.error(`[Admin] ❌ Error: Business.update retornó null`);
+      return res.status(404).json({ error: 'Business not found' });
+    }
+    
+    console.log(`[Admin] ✅ Negocio actualizado:`, {
+      id: business.id,
+      name: business.name,
+      whatsapp_number: business.whatsapp_number,
+    });
+    
     // Si cambió el whatsapp_number, reinicializar bot en segundo plano
-    if (value.whatsapp_number) {
+    if (value.whatsapp_number && value.whatsapp_number !== currentBusiness.whatsapp_number) {
+      console.log(`[Admin] 🔄 Número de WhatsApp cambió: ${currentBusiness.whatsapp_number} -> ${value.whatsapp_number}`);
       const existingBot = activeBots.get(business.id);
       if (existingBot) {
         console.log(`[Admin] Desconectando bot existente para ${business.name}...`);

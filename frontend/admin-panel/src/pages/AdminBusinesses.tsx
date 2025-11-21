@@ -864,11 +864,30 @@ function CredentialsModal({
   const [editingWhatsApp, setEditingWhatsApp] = useState(false);
   const [newWhatsAppNumber, setNewWhatsAppNumber] = useState(business.whatsapp_number || '');
 
-  // Actualizar el número cuando cambie el business prop
+  // Actualizar el número cuando cambie el business prop (solo si no estamos editando)
   useEffect(() => {
-    setNewWhatsAppNumber(business.whatsapp_number || '');
-    setEditingWhatsApp(false);
+    if (!editingWhatsApp) {
+      const currentBusinessNumber = business.whatsapp_number || '';
+      console.log('[CredentialsModal] Actualizando newWhatsAppNumber desde business prop:', {
+        oldValue: newWhatsAppNumber,
+        newValue: currentBusinessNumber,
+        wasEditing: editingWhatsApp,
+      });
+      setNewWhatsAppNumber(currentBusinessNumber);
+    }
   }, [business.whatsapp_number]);
+  
+  // Cerrar modo de edición cuando la actualización sea exitosa (cuando el business prop se actualice con el nuevo número)
+  useEffect(() => {
+    if (editingWhatsApp && isUpdating === false) {
+      // Verificar si el número en business coincide con el que estábamos editando
+      const currentBusinessNumber = business.whatsapp_number || '';
+      if (currentBusinessNumber === newWhatsAppNumber.trim()) {
+        console.log('[CredentialsModal] Actualización exitosa, cerrando modo de edición');
+        setEditingWhatsApp(false);
+      }
+    }
+  }, [business.whatsapp_number, isUpdating, editingWhatsApp, newWhatsAppNumber]);
 
   // Determinar la contraseña correcta según el negocio
   const defaultPassword = business.id === 'demo-business-001' ? 'demo123' : 'changeme123';
@@ -890,9 +909,24 @@ function CredentialsModal({
   };
 
   const handleSaveWhatsApp = () => {
-    if (onUpdate && newWhatsAppNumber.trim()) {
-      onUpdate(business.id, newWhatsAppNumber.trim());
-      setEditingWhatsApp(false);
+    const numberToSave = newWhatsAppNumber.trim();
+    console.log('[CredentialsModal] Guardando número de WhatsApp:', {
+      businessId: business.id,
+      currentNumber: business.whatsapp_number,
+      newNumber: numberToSave,
+    });
+    
+    if (onUpdate && numberToSave) {
+      // Guardar el número que vamos a enviar antes de llamar a onUpdate
+      const numberToUpdate = numberToSave;
+      onUpdate(business.id, numberToUpdate);
+      // NO cerrar el modo de edición inmediatamente, esperar a que la actualización termine
+      // El onSuccess en el componente padre invalidará las queries y actualizará el business prop
+    } else {
+      console.warn('[CredentialsModal] No se puede guardar: onUpdate o numberToSave faltante', {
+        hasOnUpdate: !!onUpdate,
+        hasNumber: !!numberToSave,
+      });
     }
   };
 
