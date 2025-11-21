@@ -876,14 +876,9 @@ function CredentialsModal({
   useEffect(() => {
     if (!editingWhatsApp) {
       const currentBusinessNumber = business.whatsapp_number || '';
-      console.log('[CredentialsModal] Actualizando newWhatsAppNumber desde business prop:', {
-        oldValue: newWhatsAppNumber,
-        newValue: currentBusinessNumber,
-        wasEditing: editingWhatsApp,
-      });
       setNewWhatsAppNumber(currentBusinessNumber);
     }
-  }, [business.whatsapp_number]);
+  }, [business.whatsapp_number, editingWhatsApp]);
   
   // Cerrar modo de edición cuando la actualización sea exitosa (cuando el business prop se actualice con el nuevo número)
   useEffect(() => {
@@ -1111,7 +1106,12 @@ function CredentialsModal({
                     Copiar
                   </button>
                   <button
-                    onClick={() => setEditingWhatsApp(true)}
+                    onClick={() => {
+                      console.log('[CredentialsModal] Botón Editar clickeado, activando modo de edición');
+                      setEditingWhatsApp(true);
+                      // Asegurar que el valor inicial es el número actual del negocio
+                      setNewWhatsAppNumber(business.whatsapp_number || '');
+                    }}
                     style={{
                       padding: '0.5rem 1rem',
                       backgroundColor: '#ffc107',
