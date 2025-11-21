@@ -391,7 +391,10 @@ export function AdminBusinesses() {
 
       {showCredentialsModal && credentialsBusiness && (
         <CredentialsModal
-          business={credentialsBusiness}
+          business={
+            // Buscar el negocio actualizado en los datos refrescados, o usar el que tenemos en estado
+            data?.data?.find((b) => b.id === credentialsBusiness.id) || credentialsBusiness
+          }
           onClose={() => {
             setShowCredentialsModal(false);
             setCredentialsBusiness(null);
@@ -407,10 +410,23 @@ export function AdminBusinesses() {
                 data: { whatsapp_number: whatsappNumber },
               },
               {
-                onSuccess: (response) => {
+                onSuccess: async (response) => {
                   console.log('[AdminBusinesses] Actualización exitosa:', response);
                   // Invalidar la query para refrescar los datos del negocio
-                  queryClient.invalidateQueries({ queryKey: ['admin-businesses'] });
+                  await queryClient.invalidateQueries({ queryKey: ['admin-businesses'] });
+                  // Refetch para obtener los datos actualizados inmediatamente
+                  const refetchedData = await queryClient.refetchQueries({ queryKey: ['admin-businesses'] });
+                  // Actualizar credentialsBusiness con los datos nuevos
+                  if (refetchedData.data?.data) {
+                    const updatedBusiness = refetchedData.data.data.find((b: Business) => b.id === businessId);
+                    if (updatedBusiness) {
+                      console.log('[AdminBusinesses] Actualizando credentialsBusiness con datos nuevos:', {
+                        old: credentialsBusiness.whatsapp_number,
+                        new: updatedBusiness.whatsapp_number,
+                      });
+                      setCredentialsBusiness(updatedBusiness);
+                    }
+                  }
                 },
                 onError: (error) => {
                   console.error('[AdminBusinesses] Error actualizando número:', error);
@@ -883,21 +899,34 @@ function CredentialsModal({
     }
   }, [business.whatsapp_number, editingWhatsApp]);
   
-  // Cerrar modo de edición cuando la actualización sea exitosa (cuando isUpdating cambia de true a false)
+  // Cerrar modo de edición cuando la actualización sea exitosa
   useEffect(() => {
     // Solo cerrar si:
     // 1. Estamos en modo de edición
     // 2. La actualización terminó (isUpdating cambió de true a false)
-    // 3. El número en business coincide con el que guardamos
+    // 3. El número en business coincide con el que guardamos (después de que se refresquen los datos)
     if (
       editingWhatsApp &&
       previousIsUpdatingRef.current === true &&
-      isUpdating === false &&
-      business.whatsapp_number === savedNumberRef.current
+      isUpdating === false
     ) {
-      console.log('[CredentialsModal] Actualización exitosa, cerrando modo de edición');
-      setEditingWhatsApp(false);
-      savedNumberRef.current = business.whatsapp_number || '';
+      // Esperar a que los datos se refresquen (el business prop se actualizará cuando la query se refetchee)
+      // Verificar si el número en business coincide con el que guardamos
+      const currentBusinessNumber = business.whatsapp_number || '';
+      if (currentBusinessNumber === savedNumberRef.current) {
+        console.log('[CredentialsModal] Actualización exitosa, datos refrescados, cerrando modo de edición');
+        console.log('[CredentialsModal] Número guardado:', savedNumberRef.current);
+        console.log('[CredentialsModal] Número en business:', currentBusinessNumber);
+        setEditingWhatsApp(false);
+        savedNumberRef.current = currentBusinessNumber;
+      } else {
+        console.log('[CredentialsModal] Actualización terminó, pero datos aún no se han refrescado');
+        console.log('[CredentialsModal] Esperando refresco de datos...');
+        console.log('[CredentialsModal] Número guardado:', savedNumberRef.current);
+        console.log('[CredentialsModal] Número en business (aún viejo):', currentBusinessNumber);
+        // Los datos se refrescarán cuando la query se invalide, y este useEffect se ejecutará de nuevo
+        // cuando business.whatsapp_number cambie al nuevo valor
+      }
     }
     
     // Actualizar referencia del estado anterior de isUpdating
