@@ -871,26 +871,38 @@ function CredentialsModal({
 }) {
   const [editingWhatsApp, setEditingWhatsApp] = useState(false);
   const [newWhatsAppNumber, setNewWhatsAppNumber] = useState(business.whatsapp_number || '');
+  const previousIsUpdatingRef = useRef<boolean | undefined>(isUpdating);
+  const savedNumberRef = useRef<string>(business.whatsapp_number || '');
 
   // Actualizar el número cuando cambie el business prop (solo si no estamos editando)
   useEffect(() => {
     if (!editingWhatsApp) {
       const currentBusinessNumber = business.whatsapp_number || '';
       setNewWhatsAppNumber(currentBusinessNumber);
+      savedNumberRef.current = currentBusinessNumber;
     }
   }, [business.whatsapp_number, editingWhatsApp]);
   
-  // Cerrar modo de edición cuando la actualización sea exitosa (cuando el business prop se actualice con el nuevo número)
+  // Cerrar modo de edición cuando la actualización sea exitosa (cuando isUpdating cambia de true a false)
   useEffect(() => {
-    if (editingWhatsApp && isUpdating === false) {
-      // Verificar si el número en business coincide con el que estábamos editando
-      const currentBusinessNumber = business.whatsapp_number || '';
-      if (currentBusinessNumber === newWhatsAppNumber.trim()) {
-        console.log('[CredentialsModal] Actualización exitosa, cerrando modo de edición');
-        setEditingWhatsApp(false);
-      }
+    // Solo cerrar si:
+    // 1. Estamos en modo de edición
+    // 2. La actualización terminó (isUpdating cambió de true a false)
+    // 3. El número en business coincide con el que guardamos
+    if (
+      editingWhatsApp &&
+      previousIsUpdatingRef.current === true &&
+      isUpdating === false &&
+      business.whatsapp_number === savedNumberRef.current
+    ) {
+      console.log('[CredentialsModal] Actualización exitosa, cerrando modo de edición');
+      setEditingWhatsApp(false);
+      savedNumberRef.current = business.whatsapp_number || '';
     }
-  }, [business.whatsapp_number, isUpdating, editingWhatsApp, newWhatsAppNumber]);
+    
+    // Actualizar referencia del estado anterior de isUpdating
+    previousIsUpdatingRef.current = isUpdating;
+  }, [business.whatsapp_number, isUpdating, editingWhatsApp]);
 
   // Determinar la contraseña correcta según el negocio
   const defaultPassword = business.id === 'demo-business-001' ? 'demo123' : 'changeme123';
@@ -920,6 +932,8 @@ function CredentialsModal({
     });
     
     if (onUpdate && numberToSave) {
+      // Guardar el número que vamos a enviar en el ref para comparar después
+      savedNumberRef.current = numberToSave;
       // Guardar el número que vamos a enviar antes de llamar a onUpdate
       const numberToUpdate = numberToSave;
       onUpdate(business.id, numberToUpdate);
