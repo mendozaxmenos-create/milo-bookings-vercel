@@ -3,7 +3,7 @@ const { Client, LocalAuth } = pkg;
 import qrcode from 'qrcode-terminal';
 import { MessageHandler } from './handlers/messageHandler.js';
 import { SessionStorage } from '../services/sessionStorage.js';
-import { saveQRCode } from '../services/qrStorage.js';
+import { saveQRCode, deleteQRCode } from '../services/qrStorage.js';
 
 export class BookingBot {
   constructor(businessId, whatsappNumber) {
@@ -66,7 +66,6 @@ export class BookingBot {
       console.log(`📱 [Bot ${this.businessId}] ==========================================\n`);
       
       // Eliminar QR anterior si existe (por si acaso)
-      const { deleteQRCode } = await import('../services/qrStorage.js');
       deleteQRCode(this.businessId);
       
       // Guardar QR code nuevo para acceso via API
@@ -106,7 +105,6 @@ export class BookingBot {
       }
       
       // Limpiar QR cuando el bot está listo
-      const { deleteQRCode } = await import('../services/qrStorage.js');
       deleteQRCode(this.businessId);
       console.log(`🗑️ [Bot ${this.businessId}] QR code deleted (bot ready)`);
     });
@@ -246,7 +244,6 @@ export class BookingBot {
             platform: clientInfo.platform,
           });
           // Limpiar QR si ya está autenticado
-          const { deleteQRCode } = await import('../services/qrStorage.js');
           deleteQRCode(this.businessId);
           console.log(`🗑️ [Bot ${this.businessId}] QR code deleted (bot already authenticated)`);
           console.log(`✅ [Bot ${this.businessId}] Bot should be ready to receive messages NOW!`);
