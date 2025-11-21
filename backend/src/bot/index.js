@@ -128,26 +128,40 @@ export class BookingBot {
 
     this.client.on('message', async (msg) => {
       console.log(`📨 [Bot ${this.businessId}] ==========================================`);
-      console.log(`📨 [Bot ${this.businessId}] MESSAGE RECEIVED!`);
+      console.log(`📨 [Bot ${this.businessId}] 🔔 MESSAGE EVENT FIRED!`);
+      console.log(`📨 [Bot ${this.businessId}] Timestamp: ${new Date().toISOString()}`);
       console.log(`📨 [Bot ${this.businessId}] From: ${msg.from}`);
-      console.log(`📨 [Bot ${this.businessId}] Body: "${msg.body?.substring(0, 100)}"`);
+      console.log(`📨 [Bot ${this.businessId}] Body: "${msg.body?.substring(0, 100) || '(empty)'}"`);
+      console.log(`📨 [Bot ${this.businessId}] Body length: ${msg.body?.length || 0}`);
       console.log(`📨 [Bot ${this.businessId}] Type: ${msg.type}`);
       console.log(`📨 [Bot ${this.businessId}] Is from me: ${msg.fromMe}`);
       console.log(`📨 [Bot ${this.businessId}] Is status: ${msg.isStatus}`);
-      console.log(`📨 [Bot ${this.businessId}] Is group: ${msg.from.includes('@g.us')}`);
-      console.log(`📨 [Bot ${this.businessId}] Timestamp: ${new Date().toISOString()}`);
+      console.log(`📨 [Bot ${this.businessId}] Is group: ${msg.from?.includes('@g.us') || false}`);
+      console.log(`📨 [Bot ${this.businessId}] Message ID: ${msg.id?.id || 'N/A'}`);
       
       // Verificar si el bot está listo
       try {
         const clientInfo = this.client.info;
         if (!clientInfo) {
-          console.warn(`⚠️ [Bot ${this.businessId}] WARNING: Client info not available, bot may not be ready!`);
+          console.warn(`⚠️ [Bot ${this.businessId}] ⚠️ WARNING: Client info not available!`);
+          console.warn(`⚠️ [Bot ${this.businessId}] Bot may not be ready to process messages!`);
+          console.warn(`⚠️ [Bot ${this.businessId}] This message will still be processed, but may fail.`);
         } else {
-          console.log(`✅ [Bot ${this.businessId}] Bot is ready, processing message...`);
+          console.log(`✅ [Bot ${this.businessId}] Bot is ready! Client info available.`);
+          console.log(`✅ [Bot ${this.businessId}] Client pushname: ${clientInfo.pushname || 'N/A'}`);
         }
       } catch (err) {
         console.warn(`⚠️ [Bot ${this.businessId}] WARNING: Could not check client info:`, err.message);
+        console.warn(`⚠️ [Bot ${this.businessId}] Error stack:`, err.stack);
       }
+      
+      // Verificar que messageHandler existe
+      if (!this.messageHandler) {
+        console.error(`❌ [Bot ${this.businessId}] ❌ CRITICAL: messageHandler is not initialized!`);
+        console.error(`❌ [Bot ${this.businessId}] Cannot process message without messageHandler!`);
+        return;
+      }
+      console.log(`✅ [Bot ${this.businessId}] Message handler exists, proceeding...`);
       
       try {
         console.log(`🔄 [Bot ${this.businessId}] Calling messageHandler.handleMessage()...`);
