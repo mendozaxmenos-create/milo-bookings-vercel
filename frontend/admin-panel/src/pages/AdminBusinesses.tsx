@@ -906,6 +906,8 @@ function CredentialsModal({
 }) {
   const [editingWhatsApp, setEditingWhatsApp] = useState(false);
   const [newWhatsAppNumber, setNewWhatsAppNumber] = useState(business.whatsapp_number || '');
+  const [botRestarting, setBotRestarting] = useState(false);
+  const [botRestarted, setBotRestarted] = useState(false);
   const previousIsUpdatingRef = useRef<boolean | undefined>(isUpdating);
   const savedNumberRef = useRef<string>(business.whatsapp_number || '');
   const hasStartedUpdateRef = useRef<boolean>(false); // Flag para rastrear si realmente iniciamos una actualización
@@ -951,6 +953,13 @@ function CredentialsModal({
         setEditingWhatsApp(false);
         savedNumberRef.current = currentBusinessNumber;
         hasStartedUpdateRef.current = false; // Reset el flag
+        // Mostrar confirmación de que el bot se está reinicializando
+        setBotRestarting(false);
+        setBotRestarted(true);
+        // Ocultar el mensaje después de 5 segundos
+        setTimeout(() => {
+          setBotRestarted(false);
+        }, 5000);
       } else {
         console.log('[CredentialsModal] ⏳ Actualización terminó, pero datos aún no se han refrescado o no coinciden');
         // Los datos se refrescarán cuando la query se invalide, y este useEffect se ejecutará de nuevo
@@ -970,6 +979,13 @@ function CredentialsModal({
       console.log('[CredentialsModal] ✅ Número actualizado detectado (después de cambio), cerrando modo de edición');
       setEditingWhatsApp(false);
       hasStartedUpdateRef.current = false; // Reset el flag
+      // Mostrar confirmación de que el bot se está reinicializando
+      setBotRestarting(false);
+      setBotRestarted(true);
+      // Ocultar el mensaje después de 5 segundos
+      setTimeout(() => {
+        setBotRestarted(false);
+      }, 5000);
     }
     
     // Actualizar referencia del estado anterior de isUpdating
@@ -1004,10 +1020,20 @@ function CredentialsModal({
     });
     
     if (onUpdate && numberToSave) {
+      // Verificar si el número cambió
+      const numberChanged = numberToSave !== business.whatsapp_number;
+      
       // Marcar que realmente iniciamos una actualización
       hasStartedUpdateRef.current = true;
       // Guardar el número que vamos a enviar en el ref para comparar después
       savedNumberRef.current = numberToSave;
+      
+      // Si el número cambió, mostrar indicador de reinicio del bot
+      if (numberChanged) {
+        setBotRestarting(true);
+        setBotRestarted(false);
+      }
+      
       // Guardar el número que vamos a enviar antes de llamar a onUpdate
       const numberToUpdate = numberToSave;
       onUpdate(business.id, numberToUpdate);
@@ -1199,6 +1225,8 @@ function CredentialsModal({
                       // Reset el flag cuando entramos en modo de edición
                       hasStartedUpdateRef.current = false;
                       setEditingWhatsApp(true);
+                      setBotRestarting(false);
+                      setBotRestarted(false);
                       // Asegurar que el valor inicial es el número actual del negocio
                       setNewWhatsAppNumber(business.whatsapp_number || '');
                     }}
@@ -1221,7 +1249,47 @@ function CredentialsModal({
                     ⚠️ <strong>Importante:</strong> Sin número de WhatsApp configurado. El bot no funcionará hasta que se configure un número aquí.
                   </p>
                 )}
-                {business.whatsapp_number && (
+                {botRestarting && (
+                  <div style={{ 
+                    fontSize: '0.875rem', 
+                    color: '#004085', 
+                    margin: 0, 
+                    padding: '0.75rem', 
+                    backgroundColor: '#cce5ff', 
+                    borderRadius: '4px',
+                    border: '1px solid #007bff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                  }}>
+                    <div style={{ 
+                      width: '16px', 
+                      height: '16px', 
+                      border: '2px solid #007bff',
+                      borderTop: '2px solid transparent',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite',
+                    }}></div>
+                    <strong>🔄 Reiniciando bot...</strong> El bot se está reinicializando con el nuevo número. Esto puede tardar unos segundos. Se generará un nuevo QR code.
+                  </div>
+                )}
+                {botRestarted && !botRestarting && (
+                  <div style={{ 
+                    fontSize: '0.875rem', 
+                    color: '#155724', 
+                    margin: 0, 
+                    padding: '0.75rem', 
+                    backgroundColor: '#d4edda', 
+                    borderRadius: '4px',
+                    border: '1px solid #28a745',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                  }}>
+                    ✅ <strong>¡Bot reinicializado exitosamente!</strong> El bot ahora está configurado con el nuevo número. Si es necesario, escanea el nuevo QR code desde "Ver QR".
+                  </div>
+                )}
+                {business.whatsapp_number && !botRestarting && !botRestarted && (
                   <p style={{ fontSize: '0.75rem', color: '#155724', margin: 0, padding: '0.5rem', backgroundColor: '#d4edda', borderRadius: '4px' }}>
                     ✅ Número configurado. El bot está asociado a este número y solo puede cambiarse desde este campo.
                   </p>
