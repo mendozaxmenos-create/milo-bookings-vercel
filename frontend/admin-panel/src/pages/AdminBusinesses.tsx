@@ -913,20 +913,36 @@ function CredentialsModal({
       // Esperar a que los datos se refresquen (el business prop se actualizará cuando la query se refetchee)
       // Verificar si el número en business coincide con el que guardamos
       const currentBusinessNumber = business.whatsapp_number || '';
-      if (currentBusinessNumber === savedNumberRef.current) {
-        console.log('[CredentialsModal] Actualización exitosa, datos refrescados, cerrando modo de edición');
-        console.log('[CredentialsModal] Número guardado:', savedNumberRef.current);
-        console.log('[CredentialsModal] Número en business:', currentBusinessNumber);
+      console.log('[CredentialsModal] Verificando si cerrar modo de edición:', {
+        editingWhatsApp,
+        wasUpdating: previousIsUpdatingRef.current,
+        isUpdating,
+        savedNumber: savedNumberRef.current,
+        currentBusinessNumber,
+        match: currentBusinessNumber === savedNumberRef.current,
+      });
+      
+      if (currentBusinessNumber === savedNumberRef.current && savedNumberRef.current !== '') {
+        console.log('[CredentialsModal] ✅ Actualización exitosa, datos refrescados, cerrando modo de edición');
         setEditingWhatsApp(false);
         savedNumberRef.current = currentBusinessNumber;
       } else {
-        console.log('[CredentialsModal] Actualización terminó, pero datos aún no se han refrescado');
-        console.log('[CredentialsModal] Esperando refresco de datos...');
-        console.log('[CredentialsModal] Número guardado:', savedNumberRef.current);
-        console.log('[CredentialsModal] Número en business (aún viejo):', currentBusinessNumber);
+        console.log('[CredentialsModal] ⏳ Actualización terminó, pero datos aún no se han refrescado o no coinciden');
         // Los datos se refrescarán cuando la query se invalide, y este useEffect se ejecutará de nuevo
         // cuando business.whatsapp_number cambie al nuevo valor
       }
+    }
+    
+    // Si el número en business cambió y estamos editando, y la actualización ya terminó,
+    // verificar si coincide con el que guardamos (por si el useEffect no se ejecutó antes)
+    if (
+      editingWhatsApp &&
+      isUpdating === false &&
+      business.whatsapp_number === savedNumberRef.current &&
+      savedNumberRef.current !== ''
+    ) {
+      console.log('[CredentialsModal] ✅ Número actualizado detectado, cerrando modo de edición');
+      setEditingWhatsApp(false);
     }
     
     // Actualizar referencia del estado anterior de isUpdating
