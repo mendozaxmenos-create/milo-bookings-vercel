@@ -318,12 +318,17 @@ router.put('/businesses/:id', async (req, res) => {
           console.error(`[Admin] Error stack:`, err.stack);
         }
       })();
+    } else if (value.whatsapp_number && value.whatsapp_number === currentBusiness.whatsapp_number) {
+      console.log(`[Admin] ℹ️ Número de WhatsApp no cambió (${value.whatsapp_number}), no es necesario reinicializar el bot`);
     }
     
+    console.log(`[Admin] ✅ Retornando negocio actualizado`);
     res.json({ data: business });
   } catch (error) {
-    console.error('Error updating business:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error(`[Admin] ❌ Error updating business:`, error);
+    console.error(`[Admin] Error message:`, error.message);
+    console.error(`[Admin] Error stack:`, error.stack);
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
 
