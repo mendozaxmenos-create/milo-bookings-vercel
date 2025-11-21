@@ -270,6 +270,13 @@ router.put('/businesses/:id', async (req, res) => {
     const isUpdatingWhatsApp = value.whatsapp_number !== undefined;
     const whatsappChanged = isUpdatingWhatsApp && value.whatsapp_number !== currentBusiness.whatsapp_number;
     
+    console.log(`[Admin] Verificación de cambio de WhatsApp:`, {
+      isUpdatingWhatsApp,
+      currentNumber: currentBusiness.whatsapp_number,
+      newNumber: value.whatsapp_number,
+      whatsappChanged,
+    });
+    
     console.log(`[Admin] Negocio actual:`, {
       id: currentBusiness.id,
       name: currentBusiness.name,
@@ -311,15 +318,28 @@ router.put('/businesses/:id', async (req, res) => {
       }
       
       // Inicializar bot en segundo plano (no bloquea la respuesta)
-      console.log(`[Admin] Inicializando bot con nuevo número ${value.whatsapp_number} para ${business.name}...`);
+      console.log(`[Admin] ==========================================`);
+      console.log(`[Admin] 🔄 INICIANDO REINICIALIZACIÓN DEL BOT`);
+      console.log(`[Admin] Negocio: ${business.name} (${business.id})`);
+      console.log(`[Admin] Número viejo: ${currentBusiness.whatsapp_number}`);
+      console.log(`[Admin] Número nuevo: ${value.whatsapp_number}`);
+      console.log(`[Admin] ==========================================`);
+      
+      // Agregar bot a activeBots ANTES de inicializar (como en index.js)
+      const bot = new BookingBot(business.id, value.whatsapp_number);
+      activeBots.set(business.id, bot);
+      console.log(`[Admin] ✅ Bot agregado a activeBots antes de inicializar`);
+      
+      // Inicializar en segundo plano (no bloquea la respuesta)
       (async () => {
         try {
-          const bot = new BookingBot(business.id, value.whatsapp_number);
+          console.log(`[Admin] Inicializando bot con nuevo número ${value.whatsapp_number} para ${business.name}...`);
           await bot.initialize();
-          activeBots.set(business.id, bot);
           console.log(`[Admin] ✅ Bot reinicializado correctamente para ${business.name}`);
+          console.log(`[Admin] Bot debería generar QR en unos segundos...`);
         } catch (err) {
           console.error(`[Admin] ❌ Error reinicializando bot para ${business.name}:`, err.message);
+          console.error(`[Admin] Error name:`, err.name);
           console.error(`[Admin] Error stack:`, err.stack);
         }
       })();
