@@ -246,13 +246,21 @@ export class MessageHandler {
   }
 
   async showMainMenu(msg) {
-    // Recargar settings para obtener los más recientes
-    await this.reloadSettings();
-    
-    const welcomeMessage = this.settings?.welcome_message || 
-      `¡Hola! Bienvenido a ${this.business?.name || 'nuestro negocio'}. ¿En qué puedo ayudarte?`;
+    try {
+      console.log(`[MessageHandler ${this.businessId}] 📋 showMainMenu called`);
+      console.log(`[MessageHandler ${this.businessId}] Message from: ${msg.from}`);
+      
+      // Recargar settings para obtener los más recientes
+      console.log(`[MessageHandler ${this.businessId}] Reloading settings...`);
+      await this.reloadSettings();
+      console.log(`[MessageHandler ${this.businessId}] Settings reloaded`);
+      console.log(`[MessageHandler ${this.businessId}] Business:`, this.business?.name || 'not loaded');
+      console.log(`[MessageHandler ${this.businessId}] Settings:`, !!this.settings);
+      
+      const welcomeMessage = this.settings?.welcome_message || 
+        `¡Hola! Bienvenido a ${this.business?.name || 'nuestro negocio'}. ¿En qué puedo ayudarte?`;
 
-    const menu = `
+      const menu = `
 ${welcomeMessage}
 
 *Menú Principal:*
@@ -262,38 +270,63 @@ ${welcomeMessage}
 4️⃣ *Mis Reservas* - Ver mis reservas
 
 Escribe el número o el nombre de la opción que deseas.
-    `.trim();
+      `.trim();
 
-    await msg.reply(menu);
+      console.log(`[MessageHandler ${this.businessId}] Sending menu message...`);
+      console.log(`[MessageHandler ${this.businessId}] Menu length: ${menu.length} characters`);
+      const response = await msg.reply(menu);
+      console.log(`[MessageHandler ${this.businessId}] ✅ Menu message sent successfully!`);
+      console.log(`[MessageHandler ${this.businessId}] Response ID: ${response?.id?.id || 'N/A'}`);
+      return response;
+    } catch (error) {
+      console.error(`[MessageHandler ${this.businessId}] ❌ Error in showMainMenu:`, error);
+      console.error(`[MessageHandler ${this.businessId}] Error message:`, error.message);
+      console.error(`[MessageHandler ${this.businessId}] Error stack:`, error.stack);
+      throw error;
+    }
   }
 
   async handleMenuSelection(msg, body, userId) {
+    console.log(`[MessageHandler ${this.businessId}] 🎯 handleMenuSelection called`);
+    console.log(`[MessageHandler ${this.businessId}] Body: "${body}"`);
+    console.log(`[MessageHandler ${this.businessId}] User ID: ${userId}`);
+    
     const userState = this.userState.get(userId) || { step: 'menu' };
+    console.log(`[MessageHandler ${this.businessId}] Current user state:`, userState);
     
     // Si está viendo servicios y escribe un número, iniciar reserva con ese servicio
     if (userState.step === 'viewing_services') {
+      console.log(`[MessageHandler ${this.businessId}] User is viewing services, checking for service number...`);
       const numberMatch = body.match(/^(\d+)$/);
       if (numberMatch) {
+        console.log(`[MessageHandler ${this.businessId}] Service number detected: ${numberMatch[1]}`);
         // Iniciar flujo de reserva con selección de servicio
         await this.handleServiceSelection(msg, body, userId);
         return;
       }
     }
     
+    console.log(`[MessageHandler ${this.businessId}] Checking menu options...`);
     if (body.includes('servicio') || body === '1' || body === '1️⃣') {
+      console.log(`[MessageHandler ${this.businessId}] Option selected: Servicios`);
       await this.showServices(msg);
       this.userState.set(userId, { step: 'viewing_services' });
     } else if (body.includes('disponibilidad') || body === '2' || body === '2️⃣') {
+      console.log(`[MessageHandler ${this.businessId}] Option selected: Disponibilidad`);
       await this.showAvailability(msg);
       this.userState.set(userId, { step: 'menu' });
     } else if (body.includes('reservar') || body === '3' || body === '3️⃣') {
+      console.log(`[MessageHandler ${this.businessId}] Option selected: Reservar`);
       await this.startBookingFlow(msg, userId);
     } else if (body.includes('reserva') || body === '4' || body === '4️⃣') {
+      console.log(`[MessageHandler ${this.businessId}] Option selected: Mis Reservas`);
       await this.showUserBookings(msg);
       this.userState.set(userId, { step: 'menu' });
     } else {
+      console.log(`[MessageHandler ${this.businessId}] No menu option matched, showing main menu`);
       await this.showMainMenu(msg);
     }
+    console.log(`[MessageHandler ${this.businessId}] ✅ handleMenuSelection complete`);
   }
 
   async showServices(msg) {
