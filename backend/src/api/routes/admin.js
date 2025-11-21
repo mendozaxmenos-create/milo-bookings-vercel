@@ -252,6 +252,13 @@ router.put('/businesses/:id', async (req, res) => {
       phone: req.body.phone,
     });
     
+    // Validar datos primero
+    const { error, value } = validateBusiness(req.body, true);
+    if (error) {
+      console.error(`[Admin] Error validando datos:`, error.details[0].message);
+      return res.status(400).json({ error: error.details[0].message });
+    }
+    
     // Obtener negocio actual para comparar
     const currentBusiness = await Business.findById(req.params.id);
     if (!currentBusiness) {
@@ -269,12 +276,6 @@ router.put('/businesses/:id', async (req, res) => {
       current_whatsapp_number: currentBusiness.whatsapp_number,
       new_whatsapp_number: req.body.whatsapp_number,
     });
-    
-    const { error, value } = validateBusiness(req.body, true);
-    if (error) {
-      console.error(`[Admin] Error validando datos:`, error.details[0].message);
-      return res.status(400).json({ error: error.details[0].message });
-    }
 
     console.log(`[Admin] Datos validados, actualizando negocio...`);
     const business = await Business.update(req.params.id, value);
