@@ -8,7 +8,7 @@
  * GET /monpatisserie (rewrite desde vercel.json)
  */
 
-import { ClientService } from '../backend/src/services/clientService.js';
+import { ClientService } from '../../../backend/src/services/clientService.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {

@@ -9,9 +9,9 @@
  * - Procesa la lógica del bot
  */
 
-import { SessionService } from '../backend/src/services/sessionService.js';
-import { ClientService } from '../backend/src/services/clientService.js';
-import { BotService } from '../backend/src/services/botService.js';
+import { SessionService } from '../../../backend/src/services/sessionService.js';
+import { ClientService } from '../../../backend/src/services/clientService.js';
+import { BotService } from '../../../backend/src/services/botService.js';
 
 // Verificación del webhook (GET)
 export default async function handler(req, res) {

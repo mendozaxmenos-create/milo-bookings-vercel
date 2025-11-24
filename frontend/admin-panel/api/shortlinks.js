@@ -5,7 +5,7 @@
  * POST /api/shortlinks - Crear nuevo shortlink
  */
 
-import { ClientService } from '../backend/src/services/clientService.js';
+import { ClientService } from '../../../backend/src/services/clientService.js';
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
