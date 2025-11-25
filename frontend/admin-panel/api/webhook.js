@@ -139,7 +139,17 @@ async function processMessage(message, metadata) {
 
   } catch (error) {
     console.error('[Webhook] Error procesando mensaje:', error);
-    // Intentar enviar mensaje de error al usuario
+    
+    // En modo de prueba, si el error es "Recipient phone number not in allowed list",
+    // no intentar enviar mensaje de error (evitar loop de errores)
+    if (error.message && error.message.includes('Recipient phone number not in allowed list')) {
+      console.warn('[Webhook] ⚠️  Número no está en la lista de destinatarios permitidos (modo de prueba).');
+      console.warn('[Webhook] 💡 En producción, todos los números pueden recibir mensajes automáticamente.');
+      console.warn('[Webhook] 📝 Para desarrollo, agrega el número en Meta: https://developers.facebook.com/apps/1969966310453058/whatsapp-business/wa-settings/');
+      return; // No intentar enviar mensaje de error
+    }
+    
+    // Para otros errores, intentar enviar mensaje de error al usuario
     try {
       await sendMessage(message.from, '❌ Ocurrió un error. Por favor, intenta de nuevo más tarde.');
     } catch (sendError) {
